@@ -30,7 +30,7 @@
     <aside class="sidebar" id="sidebar-nav">
       <div class="logo">
         <span class="logo-icon"><i data-lucide="egg"></i></span>
-        <h2>冷蔵庫メモ</h2>
+        <h2>管理アプリ</h2>
       </div>
       <nav class="nav-links">
         <button class="nav-btn active" data-target="dashboard" id="nav-dash-desktop">
@@ -61,10 +61,18 @@
       <!-- Top header -->
       <header class="top-header">
         <div class="header-title">
-          <h1 id="page-title">ダッシュボード</h1>
+          <div class="flex-row align-center gap-2 flex-wrap">
+            <h1 id="page-title">ダッシュボード</h1>
+            <span id="share-badge" class="badge badge-share" style="display: none; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 8px; font-weight: 600; vertical-align: middle;">
+              <i data-lucide="users" style="width: 14px; height: 14px;"></i><span>共有中: ファミリー</span>
+            </span>
+          </div>
           <p id="page-subtitle" class="text-secondary">今日の冷蔵庫と家計簿のまとめです。</p>
         </div>
         <div class="header-actions">
+          <button class="btn btn-secondary btn-icon-only" id="btn-open-help" title="使い方ガイド" style="border-radius: 12px; margin-right: 0.5rem;">
+            <i data-lucide="help-circle"></i>
+          </button>
           <button class="btn btn-primary" id="btn-quick-add" style="display: none;">
             <i data-lucide="plus-circle"></i><span>食材を登録</span>
           </button>
@@ -405,6 +413,40 @@
             </div>
           </div>
 
+          <!-- Family Data Sharing (User Request) -->
+          <div class="glass-card settings-card">
+            <div class="settings-title-group">
+              <i data-lucide="users" class="text-primary icon-lg"></i>
+              <div>
+                <h3>家族とのデータ共有</h3>
+                <p class="text-secondary text-sm">招待リンクまたは招待コードを使って、家族とデータを共有・同期できます。</p>
+              </div>
+            </div>
+            <div class="settings-action-group flex-column gap-3 mt-4">
+              <div class="flex-row gap-4 align-center w-full flex-wrap">
+                <button class="btn btn-primary flex-1" id="btn-generate-invite">
+                  <i data-lucide="link"></i> 招待リンクをコピー
+                </button>
+                <button class="btn btn-secondary flex-1" id="btn-show-invite-code">
+                  <i data-lucide="copy"></i> 招待コードを表示
+                </button>
+              </div>
+              <div class="flex-column gap-2 mt-2 w-full">
+                <label for="input-invite-code" class="text-sm font-medium">他のデバイスから共有された招待コードを入力:</label>
+                <div class="flex-row gap-2">
+                  <input type="text" id="input-invite-code" class="form-input flex-1" placeholder="例: 123456（6桁の数字）">
+                  <button class="btn btn-primary" id="btn-apply-invite-code">適用</button>
+                </div>
+              </div>
+              <div id="sharing-status-settings" class="text-sm mt-1 text-secondary" style="display: none; align-items: center; justify-content: space-between; width: 100%;">
+                <span class="badge badge-share inline-flex align-center gap-1" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 8px; font-weight: 600;">
+                  <i data-lucide="users" style="width: 14px; height: 14px;"></i> 共有中: ファミリー
+                </span>
+                <button class="btn btn-link text-danger text-xs" id="btn-disconnect-share" style="padding: 0; min-height: auto; text-decoration: none; background: none; border: none; cursor: pointer;">共有を解除</button>
+              </div>
+            </div>
+          </div>
+
           <!-- Data Backup & Restore -->
           <div class="glass-card settings-card">
             <div class="settings-title-group">
@@ -700,6 +742,117 @@
             </div>
             <i data-lucide="external-link" class="icon-sm"></i>
           </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- F. Family Share Import Confirm Modal -->
+  <div class="modal-backdrop" id="modal-share-confirm">
+    <div class="modal-content glass-modal text-center">
+      <div class="modal-header">
+        <h3>家族データの読み込み確認</h3>
+        <button class="modal-close" id="btn-close-share-modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="py-4">
+        <div class="mb-4">
+          <i data-lucide="users" style="width:60px; height:60px; color:var(--primary); margin:0 auto; display:block;"></i>
+        </div>
+        <h4 class="mb-2">共有データを取り込みますか？</h4>
+        <p class="text-secondary text-sm mb-4">
+          招待されたデータを取り込みます。取り込むと、現在の冷蔵庫や家計簿のデータが上書きされます。<br>
+          この操作は元に戻せません。よろしいですか？
+        </p>
+        <div class="modal-actions flex-row gap-4">
+          <button class="btn btn-secondary flex-1" id="btn-cancel-share-modal">キャンセル</button>
+          <button class="btn btn-primary flex-1" id="btn-confirm-share-modal">取り込む</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- G. Show Invite Code Modal -->
+  <div class="modal-backdrop" id="modal-show-invite-code-dialog">
+    <div class="modal-content glass-modal text-center">
+      <div class="modal-header">
+        <h3>家族用招待コード</h3>
+        <button class="modal-close" id="btn-close-code-modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="py-4 text-center">
+        <p class="text-secondary text-sm mb-3">以下の6桁のコードを家族のデバイスに入力してください。</p>
+        <div class="invite-code-display-box mb-4" style="background: var(--primary-glow); padding: 1.25rem; border-radius: 16px; border: 1px dashed var(--primary);">
+          <span id="text-invite-code-display" class="font-display text-primary" style="font-size: 2.75rem; font-weight: 800; letter-spacing: 6px; display: inline-block;">------</span>
+        </div>
+        <button class="btn btn-primary w-full" id="btn-copy-code-from-modal">
+          <i data-lucide="copy"></i> コードをコピー
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- H. Help Guide Modal -->
+  <div class="modal-backdrop" id="modal-help-guide">
+    <div class="modal-content glass-modal help-modal-content" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3>おうちの管理アプリ 使い方ガイド</h3>
+        <button class="modal-close" id="btn-close-help-modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="help-guide-body py-2">
+        <p class="text-secondary text-sm mb-4 text-center">
+          冷蔵庫の食材管理と家計簿の入力がこれひとつで！<br>
+          シンプルで便利な4つのステップをご紹介します。
+        </p>
+        
+        <div class="help-steps-container" style="display: flex; flex-direction: column; gap: 1rem; max-height: 400px; overflow-y: auto; padding-right: 0.5rem;">
+          <!-- Step 1 -->
+          <div class="help-step-card glass-card" style="padding: 1rem; border-radius: 12px; display: flex; flex-direction: column; gap: 0.25rem;">
+            <div class="step-header" style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem;">
+              <span class="step-num" style="background: var(--primary); color: var(--primary-text); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem;">1</span>
+              <h4 style="font-weight: 700; margin: 0; color: var(--primary-text-dark);">食材を登録する</h4>
+            </div>
+            <p class="text-secondary text-sm" style="margin: 0; padding-left: 2rem;">
+              冷蔵庫の中身を登録します。賞味期限を設定しておくと、期限が近づいた食材をダッシュボードでお知らせしてくれます。<br>
+              <span class="text-primary text-xs" style="font-weight: 600;">（記入例 — 食材名: 牛乳、数量: 1本、期限: 2026-06-30）</span>
+            </p>
+          </div>
+          
+          <!-- Step 2 -->
+          <div class="help-step-card glass-card" style="padding: 1rem; border-radius: 12px; display: flex; flex-direction: column; gap: 0.25rem;">
+            <div class="step-header" style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem;">
+              <span class="step-num" style="background: var(--primary); color: var(--primary-text); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem;">2</span>
+              <h4 style="font-weight: 700; margin: 0; color: var(--primary-text-dark);">支出を記録する</h4>
+            </div>
+            <p class="text-secondary text-sm" style="margin: 0; padding-left: 2rem;">
+              お買い物をしたら家計簿に支出を記録します。設定した予算に対して、カテゴリごとに残りのやりくり可能額が自動で計算されます。<br>
+              <span class="text-primary text-xs" style="font-weight: 600;">（記入例 — 内容: スーパー買い出し、金額: 2,450円）</span>
+            </p>
+          </div>
+          
+          <!-- Step 3 -->
+          <div class="help-step-card glass-card" style="padding: 1rem; border-radius: 12px; display: flex; flex-direction: column; gap: 0.25rem;">
+            <div class="step-header" style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem;">
+              <span class="step-num" style="background: var(--primary); color: var(--primary-text); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem;">3</span>
+              <h4 style="font-weight: 700; margin: 0; color: var(--primary-text-dark);">自分好みのカラーに着せ替え</h4>
+            </div>
+            <p class="text-secondary text-sm" style="margin: 0; padding-left: 2rem;">
+              「管理設定」から、18色の色鉛筆風カラーにお好みに合わせてアプリの色をいつでも変更できます。
+            </p>
+          </div>
+          
+          <!-- Step 4 -->
+          <div class="help-step-card glass-card" style="padding: 1rem; border-radius: 12px; display: flex; flex-direction: column; gap: 0.25rem;">
+            <div class="step-header" style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem;">
+              <span class="step-num" style="background: var(--primary); color: var(--primary-text); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem;">4</span>
+              <h4 style="font-weight: 700; margin: 0; color: var(--primary-text-dark);">家族みんなでデータを共有</h4>
+            </div>
+            <p class="text-secondary text-sm" style="margin: 0; padding-left: 2rem;">
+              「管理設定」から招待リンクを送るか、**6桁の招待コード**を伝えるだけで、別のスマホでも簡単に同じデータを共有・同期できます。
+            </p>
+          </div>
+        </div>
+        
+        <div class="modal-actions mt-4">
+          <button class="btn btn-primary w-full" id="btn-close-help-modal-ok">さっそく使ってみる！</button>
         </div>
       </div>
     </div>
