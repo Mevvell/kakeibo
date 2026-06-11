@@ -1,7 +1,7 @@
 /**
  * Charts Module for Smart Fridge & Ledger
  * Configures and renders Chart.js charts with warm, friendly pastel aesthetics.
- * Receives pre-aggregated data to keep period calculations clean in app.js.
+ * Receives pre-aggregated data and supports dynamic user-defined categories.
  */
 
 class LedgerCharts {
@@ -10,7 +10,7 @@ class LedgerCharts {
     this.barChart = null;
     this.theme = 'light';
     
-    // Cozy category config with entertainment and travel/telecom
+    // Core default categories config
     this.categories = {
       food: { label: '食費', color: '#ff7a59' },
       eat_out: { label: '外食', color: '#f1a208' },
@@ -55,28 +55,57 @@ class LedgerCharts {
   }
 
   /**
-   * Render Category Doughnut Chart (Expects pre-aggregated totals object)
+   * Generates a deterministic pastel HSL color based on string input
+   */
+  generatePastelColor(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    // Pastel properties: Lightness 65-70%, Saturation 70-80%
+    const h = Math.abs(hash) % 360;
+    return `hsl(${h}, 75%, 65%)`;
+  }
+
+  /**
+   * Render Category Doughnut Chart
    * @param {string} canvasId
-   * @param {Object} categoryTotals - e.g. { food: 1200, eat_out: 4000, ... }
+   * @param {Object} categoryTotals - e.g. { food: 1200, eat_out: 4000, "自炊特別": 500 }
    */
   renderPieChart(canvasId, categoryTotals) {
     const ctx = document.getElementById(canvasId);
     if (!ctx) return;
 
+    // Dynamically register new custom categories from totals data
+    Object.keys(categoryTotals).forEach(key => {
+      if (!this.categories[key] && categoryTotals[key] > 0) {
+        this.categories[key] = {
+          label: key, // Custom category name
+          color: this.generatePastelColor(key)
+        };
+      }
+    });
+
     const labels = [];
     const data = [];
     const backgroundColor = [];
 
+    // Map data for categories that have values > 0
     Object.keys(this.categories).forEach(key => {
-      labels.push(this.categories[key].label);
-      data.push(categoryTotals[key] || 0);
-      backgroundColor.push(this.categories[key].color);
+      const value = categoryTotals[key] || 0;
+      if (value > 0) {
+        labels.push(this.categories[key].label);
+        data.push(value);
+        backgroundColor.push(this.categories[key].color);
+      }
     });
 
     const colors = this.getChartColors();
 
     if (this.pieChart) {
+      this.pieChart.data.labels = labels;
       this.pieChart.data.datasets[0].data = data;
+      this.pieChart.data.datasets[0].backgroundColor = backgroundColor;
       this.pieChart.options.plugins.legend.labels.color = colors.text;
       this.pieChart.options.borderColor = this.theme === 'dark' ? '#28221c' : '#ffffff';
       this.pieChart.update();
@@ -137,9 +166,7 @@ class LedgerCharts {
   }
 
   /**
-   * Render Monthly Expense Trend Bar Chart (Expects pre-computed monthly data)
-   * @param {string} canvasId
-   * @param {Object} monthlyData - e.g. { labels: ['4月', '5月'], data: [12000, 15000] }
+   * Render Monthly Expense Trend Bar Chart
    */
   renderBarChart(canvasId, monthlyData) {
     const ctx = document.getElementById(canvasId);

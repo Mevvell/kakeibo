@@ -1,6 +1,7 @@
 /**
  * Main Application Logic for おうちの冷蔵庫メモ ＆ 家計簿
  * Coordinates state, localStorage, periods calculation, integrated budgets, and premium recipes.
+ * Format adapted for adult users (proper Kanji UI) with custom category fields and airy spacing.
  */
 
 // APPLICATION STATE
@@ -24,14 +25,14 @@ let state = {
   }
 };
 
-// CATEGORY CONFIGURATIONS & LABELS
+// CATEGORY CONFIGURATIONS & LABELS (Will grow dynamically as users add custom categories)
 const FRIDGE_CATEGORIES = {
   meat_fish: '肉・魚',
   vegetable: '野菜・果物',
   dairy: '乳製品',
-  drink: 'のみもの',
+  drink: '飲料',
   seasoning: '調味料',
-  processed: '加工食品・おやつ',
+  processed: '加工食品',
   other: 'その他'
 };
 
@@ -60,7 +61,7 @@ function loadFromStorage() {
   if (data) {
     try {
       state = JSON.parse(data);
-      // Migrate old schema to new if necessary
+      // Migrate schemas
       if (!state.fridgeItems) state.fridgeItems = [];
       if (!state.ledgerItems) state.ledgerItems = [];
       if (!state.settings) state.settings = {};
@@ -82,19 +83,27 @@ function loadFromStorage() {
           other: 5000
         };
       }
-      // Ensure all budgets subfields exist
       const keys = ['food', 'eat_out', 'daily_necessities', 'utilities', 'entertainment', 'travel_telecom', 'other'];
       keys.forEach(k => {
         if (s.budgets[k] === undefined) s.budgets[k] = 5000;
       });
       
-      // Upgrade fridgeItems format to include location if missing
       state.fridgeItems.forEach(item => {
         if (!item.location) {
-          // Guess based on category
           if (item.category === 'vegetable') item.location = 'vegetable';
-          else if (item.category === 'meat_fish') item.location = 'freezer'; // Default guess
+          else if (item.category === 'meat_fish') item.location = 'freezer';
           else item.location = 'fridge';
+        }
+        // If it is a custom category, register it to temporary map
+        if (item.category && !FRIDGE_CATEGORIES[item.category]) {
+          FRIDGE_CATEGORIES[item.category] = item.category;
+        }
+      });
+
+      // Scan and register custom categories for Ledger
+      state.ledgerItems.forEach(item => {
+        if (item.category && !LEDGER_CATEGORIES[item.category]) {
+          LEDGER_CATEGORIES[item.category] = item.category;
         }
       });
     } catch (e) {
@@ -123,20 +132,19 @@ function injectDemoData() {
     { id: 'f6', name: 'にんじん', category: 'vegetable', location: 'vegetable', quantity: '2本', expiry: formatDate(8), dateAdded: formatDate(-1) }
   ];
 
-  // Helper for past dates relative to today
   state.ledgerItems = [
     { id: 'l1', date: formatDate(-3), name: 'スーパー買い出し (牛乳・野菜)', category: 'food', price: 1250 },
     { id: 'l2', date: formatDate(-1), name: 'お惣菜・弁当', category: 'food', price: 980 },
-    { id: 'l3', date: formatDate(0), name: '友達とカフェ', category: 'eat_out', price: 1500 },
-    { id: 'l4', date: formatDate(-5), name: '洗剤とティッシュ', category: 'daily_necessities', price: 720 },
-    { id: 'l5', date: formatDate(-7), name: 'スマホ代', category: 'travel_telecom', price: 4200 },
-    { id: 'l6', date: formatDate(-2), name: '映画のチケット', category: 'entertainment', price: 1900 },
+    { id: 'l3', date: formatDate(0), name: '居酒屋飲み会', category: 'eat_out', price: 4500 },
+    { id: 'l4', date: formatDate(-5), name: '洗剤・ティッシュ', category: 'daily_necessities', price: 720 },
+    { id: 'l5', date: formatDate(-7), name: 'スマートフォン代', category: 'travel_telecom', price: 4200 },
+    { id: 'l6', date: formatDate(-2), name: '映画鑑賞チケット', category: 'entertainment', price: 1900 },
     { id: 'l7', date: formatDate(-10), name: '水道料金', category: 'utilities', price: 3800 }
   ];
 
   state.settings = {
-    startDay: 15, // Let's default to 15 (Salary day demo)
-    carryOver: 3500, // Carry over 3,500 yen
+    startDay: 15,
+    carryOver: 3500,
     budgets: {
       food: 25000,
       eat_out: 12000,
@@ -153,58 +161,37 @@ function injectDemoData() {
 }
 
 // ----------------------------------------------------
-// DATE PERIOD CALCULATIONS (Handles startDays 1-31 and month overflows)
+// DATE PERIOD CALCULATIONS
 // ----------------------------------------------------
-
-/**
- * Returns a valid Date object for target year & month, capped to that month's maximum days
- */
 function getSafeDate(year, month, day) {
-  // JavaScript month is 0-indexed.
-  // Set day to 0 of next month to find maximum days in target month.
   const maxDays = new Date(year, month + 1, 0).getDate();
   const safeDay = Math.min(day, maxDays);
   return new Date(year, month, safeDay);
 }
 
-/**
- * Calculates the start and end Date for the budget month period containing the given date
- * @param {number} startDay - 1 to 31
- * @param {Date} refDate
- * @returns {Object} { start: Date, end: Date, label: String }
- */
 function getCurrentPeriod(startDay, refDate = new Date()) {
   const year = refDate.getFullYear();
-  const month = refDate.getMonth(); // 0-11
-  const day = refDate.getDate();
+  const month = refDate.getMonth();
 
   let periodStart;
   let periodEnd;
 
-  // Let's check what the start date for THIS calendar month would be
   const thisMonthStart = getSafeDate(year, month, startDay);
 
   if (refDate >= thisMonthStart) {
-    // We are inside or past the start day of this calendar month
-    // Period starts on this month's safe startDay, and ends on next month's startDay - 1
     periodStart = thisMonthStart;
     const nextMonthStart = getSafeDate(year, month + 1, startDay);
     periodEnd = new Date(nextMonthStart.getTime());
     periodEnd.setDate(periodEnd.getDate() - 1);
   } else {
-    // We are before the start day of this calendar month
-    // Period started on last month's safe startDay, and ends on this month's startDay - 1
     periodStart = getSafeDate(year, month - 1, startDay);
     periodEnd = new Date(thisMonthStart.getTime());
     periodEnd.setDate(periodEnd.getDate() - 1);
   }
 
-  // Set times to absolute start & end of day
   periodStart.setHours(0, 0, 0, 0);
   periodEnd.setHours(23, 59, 59, 999);
 
-  // Label display, e.g. "6月期 (6/15 - 7/14)"
-  // The month name belongs to the start month
   const startMonthNum = periodStart.getMonth() + 1;
   const startDayNum = periodStart.getDate();
   const endMonthNum = periodEnd.getMonth() + 1;
@@ -214,10 +201,9 @@ function getCurrentPeriod(startDay, refDate = new Date()) {
   return { start: periodStart, end: periodEnd, label: label };
 }
 
-// Check if a YYYY-MM-DD date string is inside the period
 function isDateInPeriod(dateStr, period) {
   const itemDate = new Date(dateStr);
-  itemDate.setHours(12, 0, 0, 0); // Avoid timezone shift
+  itemDate.setHours(12, 0, 0, 0);
   return itemDate >= period.start && itemDate <= period.end;
 }
 
@@ -232,6 +218,37 @@ const sections = {
 const pageTitle = document.getElementById('page-title');
 const pageSubtitle = document.getElementById('page-subtitle');
 const navButtons = document.querySelectorAll('.nav-btn, .mobile-nav-btn');
+
+// DYNAMICALLY POPULATE CATEGORY FILTERS
+function updateFilterDropdowns() {
+  const fridgeDropdown = document.getElementById('fridge-category-filter');
+  const ledgerDropdown = document.getElementById('ledger-category-filter');
+
+  const selectedFridgeVal = fridgeDropdown.value;
+  const selectedLedgerVal = ledgerDropdown.value;
+
+  // 1. Fridge categories
+  fridgeDropdown.innerHTML = '<option value="all">すべてのカテゴリ</option>';
+  Object.keys(FRIDGE_CATEGORIES).forEach(key => {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = FRIDGE_CATEGORIES[key];
+    fridgeDropdown.appendChild(opt);
+  });
+  fridgeDropdown.value = selectedFridgeVal;
+  if (!fridgeDropdown.value) fridgeDropdown.value = 'all'; // Fallback if old deleted
+
+  // 2. Ledger categories
+  ledgerDropdown.innerHTML = '<option value="all">すべてのカテゴリ</option>';
+  Object.keys(LEDGER_CATEGORIES).forEach(key => {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = LEDGER_CATEGORIES[key];
+    ledgerDropdown.appendChild(opt);
+  });
+  ledgerDropdown.value = selectedLedgerVal;
+  if (!ledgerDropdown.value) ledgerDropdown.value = 'all';
+}
 
 // ROUTING / NAVIGATION
 function navigateTo(targetId) {
@@ -251,30 +268,31 @@ function navigateTo(targetId) {
     }
   });
 
-  // Clear selections when switching screen
   if (targetId !== 'fridge') {
     selectedIngredients.clear();
     updateRecipeActionBar();
   }
 
+  updateFilterDropdowns();
+
   switch (targetId) {
     case 'dashboard':
-      pageTitle.textContent = 'おうちのようす';
+      pageTitle.textContent = 'ダッシュボード';
       pageSubtitle.textContent = '今日の冷蔵庫と家計簿のまとめです。';
       renderDashboard();
       break;
     case 'fridge':
       pageTitle.textContent = '冷蔵庫の中身';
-      pageSubtitle.textContent = '保存場所をえらんで、食材を追加・編集できます。';
+      pageSubtitle.textContent = '保存場所を選んで、食材を追加・編集できます。';
       renderFridge();
       break;
     case 'ledger':
-      pageTitle.textContent = '家計簿ノート';
+      pageTitle.textContent = '家計簿';
       pageSubtitle.textContent = 'カテゴリごとの予算設定や支出グラフを確認できます。';
       renderLedger();
       break;
     case 'settings':
-      pageTitle.textContent = 'かんり設定';
+      pageTitle.textContent = '管理設定';
       pageSubtitle.textContent = 'データのバックアップ、アプリの初期化を行います。';
       renderSettings();
       break;
@@ -313,7 +331,6 @@ function getDaysDifference(targetDateStr) {
 
 // 1. RENDER DASHBOARD
 function renderDashboard() {
-  // Count stats
   let expiredCount = 0;
   let warningCount = 0;
 
@@ -330,22 +347,19 @@ function renderDashboard() {
   document.getElementById('dash-warning-count').textContent = warningCount;
   document.getElementById('dash-total-count').textContent = state.fridgeItems.length;
 
-  // Calculate current period budget status
   const period = getCurrentPeriod(state.settings.startDay);
-  document.getElementById('dash-period-label').textContent = `${period.label} のしゅっぴ`;
+  document.getElementById('dash-period-label').textContent = `${period.label} の支出`;
 
   const periodExpenses = state.ledgerItems
     .filter(item => isDateInPeriod(item.date, period))
     .reduce((sum, item) => sum + Number(item.price), 0);
 
-  // Sum all budgets
   const sumBudgets = Object.values(state.settings.budgets).reduce((sum, val) => sum + Number(val), 0);
   const totalBudgetWithCarryOver = sumBudgets + Number(state.settings.carryOver);
 
   document.getElementById('dash-expense-total').textContent = `¥${periodExpenses.toLocaleString()}`;
   document.getElementById('dash-budget-limit').textContent = `¥${totalBudgetWithCarryOver.toLocaleString()}`;
 
-  // Update budget progress bar
   const fillBar = document.getElementById('budget-progress-bar');
   const percent = totalBudgetWithCarryOver > 0 
     ? Math.min(100, Math.max(0, (periodExpenses / totalBudgetWithCarryOver) * 100)) 
@@ -360,11 +374,10 @@ function renderDashboard() {
     fillBar.style.background = 'linear-gradient(to right, var(--primary), #ffa585)';
   }
 
-  // Budget status text
   const budgetStatusText = document.getElementById('dash-budget-status');
   if (periodExpenses <= totalBudgetWithCarryOver) {
     const rem = totalBudgetWithCarryOver - periodExpenses;
-    budgetStatusText.innerHTML = `のこり使える予算: <strong class="text-success">¥${rem.toLocaleString()}</strong>`;
+    budgetStatusText.innerHTML = `残りの予算: <strong class="text-success">¥${rem.toLocaleString()}</strong>`;
   } else {
     const over = periodExpenses - totalBudgetWithCarryOver;
     budgetStatusText.innerHTML = `<span class="text-danger"><i data-lucide="alert-circle" style="width:14px;height:14px;display:inline-block;vertical-align:middle;"></i> 予算を <strong>¥${over.toLocaleString()}</strong> 超過！</span>`;
@@ -380,7 +393,7 @@ function renderDashboard() {
     expiringContainer.innerHTML = `
       <div class="empty-state">
         <i data-lucide="smile" class="text-success"></i>
-        <p>期限がちかい食材はありません。</p>
+        <p>期限が近い食材はありません。</p>
       </div>
     `;
   } else {
@@ -409,7 +422,7 @@ function renderDashboard() {
             <span class="compact-item-badge ${statusClass}"></span>
             <div>
               <strong>${escapeHtml(item.name)}</strong>
-              <div class="text-sm text-secondary">${locationLabel}室 ・ ${FRIDGE_CATEGORIES[item.category] || 'その他'} ${item.quantity ? `・ ${escapeHtml(item.quantity)}` : ''}</div>
+              <div class="text-sm text-secondary">${locationLabel}室 ・ ${FRIDGE_CATEGORIES[item.category] || item.category} ${item.quantity ? `・ ${escapeHtml(item.quantity)}` : ''}</div>
             </div>
           </div>
           <div class="compact-item-meta">
@@ -431,12 +444,12 @@ function renderDashboard() {
     expenseContainer.innerHTML = `
       <div class="empty-state">
         <i data-lucide="shopping-bag" class="text-secondary"></i>
-        <p>しゅっぴの履歴はありません。</p>
+        <p>支出の履歴はありません。</p>
       </div>
     `;
   } else {
     expenseContainer.innerHTML = sortedExpenses.map(item => {
-      const catLabel = LEDGER_CATEGORIES[item.category] || 'その他';
+      const catLabel = LEDGER_CATEGORIES[item.category] || item.category;
       return `
         <div class="compact-item">
           <div class="compact-item-info">
@@ -469,7 +482,6 @@ function renderFridge() {
   const category = categoryFilter.value;
   const sortBy = sortFilter.value;
 
-  // Filter by search, category AND mock location room tab
   let filtered = state.fridgeItems.filter(item => {
     const matchRoom = item.location === activeFridgeRoom;
     const matchQuery = item.name.toLowerCase().includes(query);
@@ -477,7 +489,6 @@ function renderFridge() {
     return matchRoom && matchQuery && matchCategory;
   });
 
-  // Sorting
   filtered.sort((a, b) => {
     if (sortBy === 'expiry_asc') {
       return new Date(a.expiry) - new Date(b.expiry);
@@ -497,7 +508,7 @@ function renderFridge() {
     fridgeGrid.innerHTML = `
       <div class="empty-state" style="grid-column: 1 / -1; padding: 4rem 1.5rem;">
         <i data-lucide="cookie" class="text-muted"></i>
-        <p>${roomNames[activeFridgeRoom]}はからっぽです。</p>
+        <p>${roomNames[activeFridgeRoom]}には食材が登録されていません。</p>
       </div>
     `;
   } else {
@@ -528,11 +539,10 @@ function renderFridge() {
         <div class="glass-card fridge-card ${isSelectedClass}" id="fridge-card-${item.id}">
           <div class="fridge-card-indicator ${borderClass}"></div>
           
-          <!-- Recipe Checkbox -->
           <input type="checkbox" class="fridge-card-select-checkbox" data-id="${item.id}" ${isChecked} onchange="toggleIngredientSelection('${item.id}', this.checked)">
 
           <div class="fridge-card-header">
-            <span class="fridge-card-cat">${FRIDGE_CATEGORIES[item.category] || 'その他'}</span>
+            <span class="fridge-card-cat">${FRIDGE_CATEGORIES[item.category] || item.category}</span>
             <div class="fridge-card-actions">
               <button class="btn-action edit" onclick="openEditItemModal('${item.id}')" title="編集"><i data-lucide="edit-2"></i></button>
               <button class="btn-action delete" onclick="deleteFridgeItem('${item.id}')" title="削除"><i data-lucide="trash-2"></i></button>
@@ -598,12 +608,10 @@ const ledgerSearch = document.getElementById('ledger-search-input');
 const ledgerFilter = document.getElementById('ledger-category-filter');
 const ledgerBody = document.getElementById('ledger-list-body');
 
-// Load settings inputs from state
 function populateLedgerBudgetForm() {
   document.getElementById('ledger-start-day-input').value = state.settings.startDay;
   document.getElementById('ledger-carry-over-input').value = state.settings.carryOver;
   
-  // Categories budget
   document.getElementById('budget-food').value = state.settings.budgets.food;
   document.getElementById('budget-eat_out').value = state.settings.budgets.eat_out;
   document.getElementById('budget-necessities').value = state.settings.budgets.daily_necessities;
@@ -619,12 +627,10 @@ function renderLedger() {
 
   const period = getCurrentPeriod(state.settings.startDay);
   
-  // Render current period label banner
   const startStr = period.start.toISOString().split('T')[0].replace(/-/g, '/');
   const endStr = period.end.toISOString().split('T')[0].replace(/-/g, '/');
   document.getElementById('ledger-current-period-text').textContent = `やりくり集計期間: ${startStr} 〜 ${endStr}`;
 
-  // Filter items that are inside active period AND query filters
   let filtered = state.ledgerItems.filter(item => {
     const matchPeriod = isDateInPeriod(item.date, period);
     const matchQuery = item.name.toLowerCase().includes(query) || (LEDGER_CATEGORIES[item.category] && LEDGER_CATEGORIES[item.category].toLowerCase().includes(query));
@@ -645,7 +651,7 @@ function renderLedger() {
     `;
   } else {
     ledgerBody.innerHTML = filtered.map(item => {
-      const catLabel = LEDGER_CATEGORIES[item.category] || 'その他';
+      const catLabel = LEDGER_CATEGORIES[item.category] || item.category;
       return `
         <tr id="ledger-row-${item.id}">
           <td class="font-semibold">${item.date}</td>
@@ -663,7 +669,6 @@ function renderLedger() {
   }
 
   // AGGREGATE CHART DATA
-  // 1. Categories totals
   const categoryTotals = {
     food: 0,
     eat_out: 0,
@@ -674,26 +679,28 @@ function renderLedger() {
     other: 0
   };
 
-  // Only aggregate ledger items within current period
   state.ledgerItems.forEach(item => {
     if (isDateInPeriod(item.date, period)) {
       const cat = item.category;
       if (categoryTotals[cat] !== undefined) {
         categoryTotals[cat] += Number(item.price);
       } else {
-        categoryTotals.other += Number(item.price);
+        // Dynamic custom category aggregation
+        if (categoryTotals[cat] === undefined) {
+          categoryTotals[cat] = 0;
+        }
+        categoryTotals[cat] += Number(item.price);
       }
     }
   });
 
-  // 2. Monthly totals aggregation (using calendar months of last 6 months)
   const months = [];
   const monthlyData = { labels: [], data: [] };
   
   for (let i = 5; i >= 0; i--) {
     const d = new Date();
     d.setMonth(d.getMonth() - i);
-    const mStr = d.toISOString().substring(0, 7); // YYYY-MM
+    const mStr = d.toISOString().substring(0, 7);
     months.push(mStr);
     
     const parts = mStr.split('-');
@@ -738,7 +745,6 @@ document.getElementById('btn-save-ledger-budget').addEventListener('click', () =
   state.settings.startDay = startDay;
   state.settings.carryOver = carryOver;
 
-  // Read subcategories
   state.settings.budgets.food = parseInt(document.getElementById('budget-food').value) || 0;
   state.settings.budgets.eat_out = parseInt(document.getElementById('budget-eat_out').value) || 0;
   state.settings.budgets.daily_necessities = parseInt(document.getElementById('budget-necessities').value) || 0;
@@ -749,11 +755,10 @@ document.getElementById('btn-save-ledger-budget').addEventListener('click', () =
 
   saveToStorage();
   
-  // Collapse details panel
   document.getElementById('budget-settings-details').open = false;
 
   renderLedger();
-  alert('今期のやりくり設定を保存しました！');
+  alert('今期の予算と集計設定を保存しました！');
 });
 
 // ADD/EDIT ITEM MODAL & ACTIONS
@@ -762,14 +767,30 @@ const itemForm = document.getElementById('form-fridge-item');
 const syncLedgerCheck = document.getElementById('form-item-sync-ledger');
 const priceContainer = document.getElementById('form-item-price-container');
 
+const formItemCategorySelect = document.getElementById('form-item-category');
+const formItemCustomContainer = document.getElementById('form-item-custom-category-container');
+const formItemCustomInput = document.getElementById('form-item-custom-category');
+
+// Show/Hide custom input on selection change
+formItemCategorySelect.addEventListener('change', (e) => {
+  if (e.target.value === 'custom') {
+    formItemCustomContainer.style.display = 'block';
+    formItemCustomInput.required = true;
+  } else {
+    formItemCustomContainer.style.display = 'none';
+    formItemCustomInput.required = false;
+  }
+});
+
 function openAddItemModal() {
-  document.getElementById('item-modal-title').textContent = '食材を入れる';
+  document.getElementById('item-modal-title').textContent = '食材の登録';
   document.getElementById('form-item-id').value = '';
   itemForm.reset();
   
-  // Set default location to match active tab
   document.getElementById('form-item-location').value = activeFridgeRoom;
-  
+  formItemCustomContainer.style.display = 'none';
+  formItemCustomInput.required = false;
+
   const d = new Date();
   d.setDate(d.getDate() + 5);
   document.getElementById('form-item-expiry').value = d.toISOString().split('T')[0];
@@ -787,10 +808,23 @@ function openEditItemModal(id) {
   document.getElementById('item-modal-title').textContent = '食材の編集';
   document.getElementById('form-item-id').value = item.id;
   document.getElementById('form-item-name').value = item.name;
-  document.getElementById('form-item-category').value = item.category;
   document.getElementById('form-item-location').value = item.location || 'fridge';
   document.getElementById('form-item-quantity').value = item.quantity || '';
   document.getElementById('form-item-expiry').value = item.expiry;
+
+  // Set category dropdown value
+  const standardKeys = ['meat_fish', 'vegetable', 'dairy', 'drink', 'seasoning', 'processed', 'other'];
+  if (standardKeys.includes(item.category)) {
+    formItemCategorySelect.value = item.category;
+    formItemCustomContainer.style.display = 'none';
+    formItemCustomInput.required = false;
+  } else {
+    // Custom category
+    formItemCategorySelect.value = 'custom';
+    formItemCustomContainer.style.display = 'block';
+    formItemCustomInput.value = item.category;
+    formItemCustomInput.required = true;
+  }
 
   syncLedgerCheck.checked = false;
   priceContainer.style.display = 'none';
@@ -834,11 +868,22 @@ itemForm.addEventListener('submit', (e) => {
   const id = document.getElementById('form-item-id').value;
   const name = document.getElementById('form-item-name').value.trim();
   const location = document.getElementById('form-item-location').value;
-  const category = document.getElementById('form-item-category').value;
+  let category = formItemCategorySelect.value;
   const quantity = document.getElementById('form-item-quantity').value.trim();
   const expiry = document.getElementById('form-item-expiry').value;
   const syncLedger = syncLedgerCheck.checked;
   const price = parseInt(document.getElementById('form-item-price').value) || 0;
+
+  if (category === 'custom') {
+    const customVal = formItemCustomInput.value.trim();
+    if (!customVal) {
+      alert('新しいカテゴリ名を入力してください。');
+      return;
+    }
+    category = customVal;
+    // Register custom label dynamically
+    FRIDGE_CATEGORIES[category] = category;
+  }
 
   if (!name || !expiry) return;
 
@@ -869,11 +914,16 @@ itemForm.addEventListener('submit', (e) => {
     });
 
     if (syncLedger && price > 0) {
+      // Set food category or custom food category if custom was added
+      // If food added dynamically register ledger category map
+      const ledgerCat = (formItemCategorySelect.value === 'custom') ? category : 'food';
+      LEDGER_CATEGORIES[ledgerCat] = (formItemCategorySelect.value === 'custom') ? category : '食費 (冷蔵庫連携)';
+      
       state.ledgerItems.push({
         id: 'l_' + Date.now(),
         date: todayStr,
         name: name,
-        category: 'food',
+        category: ledgerCat,
         price: price
       });
     }
@@ -881,11 +931,11 @@ itemForm.addEventListener('submit', (e) => {
 
   saveToStorage();
   closeItemModal();
+  updateFilterDropdowns();
   
   if (sections.dashboard.classList.contains('active')) {
     renderDashboard();
   } else {
-    // Sync room tab to match location added
     activeFridgeRoom = location;
     roomButtons.forEach(b => {
       if (b.getAttribute('data-room') === location) b.classList.add('active');
@@ -895,13 +945,29 @@ itemForm.addEventListener('submit', (e) => {
   }
 });
 
-// MANUAL LEDGER REGISTER
+// MANUAL LEDGER REGISTER & TOGGLES
 const ledgerModal = document.getElementById('modal-ledger-manual');
 const ledgerForm = document.getElementById('form-ledger-manual');
+
+const formLedgerCategorySelect = document.getElementById('form-ledger-category');
+const formLedgerCustomContainer = document.getElementById('form-ledger-custom-category-container');
+const formLedgerCustomInput = document.getElementById('form-ledger-custom-category');
+
+formLedgerCategorySelect.addEventListener('change', (e) => {
+  if (e.target.value === 'custom') {
+    formLedgerCustomContainer.style.display = 'block';
+    formLedgerCustomInput.required = true;
+  } else {
+    formLedgerCustomContainer.style.display = 'none';
+    formLedgerCustomInput.required = false;
+  }
+});
 
 function openLedgerModal() {
   ledgerForm.reset();
   document.getElementById('form-ledger-date').value = new Date().toISOString().split('T')[0];
+  formLedgerCustomContainer.style.display = 'none';
+  formLedgerCustomInput.required = false;
   ledgerModal.classList.add('active');
 }
 
@@ -913,8 +979,18 @@ ledgerForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const date = document.getElementById('form-ledger-date').value;
   const name = document.getElementById('form-ledger-name').value.trim();
-  const category = document.getElementById('form-ledger-category').value;
+  let category = formLedgerCategorySelect.value;
   const price = parseInt(document.getElementById('form-ledger-price').value) || 0;
+
+  if (category === 'custom') {
+    const customVal = formLedgerCustomInput.value.trim();
+    if (!customVal) {
+      alert('新しいカテゴリ名を入力してください。');
+      return;
+    }
+    category = customVal;
+    LEDGER_CATEGORIES[category] = category;
+  }
 
   if (!date || !name || price <= 0) return;
 
@@ -928,6 +1004,7 @@ ledgerForm.addEventListener('submit', (e) => {
 
   saveToStorage();
   closeLedgerModal();
+  updateFilterDropdowns();
   renderLedger();
 });
 
@@ -997,11 +1074,11 @@ async function processOcrImage(imageDataUrl) {
         closeOcrModal();
       }, 1500);
     } else {
-      alert(`日付が見つかりませんでした。枠に日付を合わせて撮り直すか、手動で入力してください。\n(検出文字: "${rawText.substring(0, 40)}")`);
+      alert(`日付を検出できませんでした。枠に日付を合わせて撮り直すか、手動で入力してください。\n(検出結果: "${rawText.substring(0, 40)}")`);
     }
   } catch (error) {
     ocrLoader.style.display = 'none';
-    alert('よみとり中にエラーが発生しました。');
+    alert('文字認識の処理中にエラーが発生しました。');
     console.error(error);
   }
 }
@@ -1022,30 +1099,24 @@ document.getElementById('btn-recipe-suggest').addEventListener('click', () => {
   if (selectedIngredients.size === 0) return;
 
   if (!state.settings.isPremium) {
-    // Blocked: Show premium info dialog
     premiumIntroModal.classList.add('active');
   } else {
-    // Unlocked: Generate links
     openRecipeProposalModal();
   }
 });
 
-// Demo Unlock Premium Mode
 document.getElementById('btn-premium-demo-unlock').addEventListener('click', () => {
   state.settings.isPremium = true;
   saveToStorage();
   premiumIntroModal.classList.remove('active');
-  
-  // Show recipe links directly
   openRecipeProposalModal();
 });
 
-// Settings button simulator
 document.getElementById('btn-toggle-premium-mock').addEventListener('click', () => {
   state.settings.isPremium = !state.settings.isPremium;
   saveToStorage();
   renderSettings();
-  alert(`プレミアムプランを ${state.settings.isPremium ? '有効化' : '無効化'} しました。`);
+  alert(`プレミアム機能を ${state.settings.isPremium ? '有効化' : '無効化'} しました。`);
 });
 
 function openRecipeProposalModal() {
@@ -1057,16 +1128,12 @@ function openRecipeProposalModal() {
   const ingredientsStr = selectedItems.join(' ');
   document.getElementById('recipe-selected-ingredients').textContent = selectedItems.join(', ');
 
-  // Update hyperlinks to external recipes sites
-  // 1. Cookpad
   const cookpadUrl = `https://cookpad.com/search/${encodeURIComponent(ingredientsStr)}`;
   document.getElementById('link-recipe-cookpad').href = cookpadUrl;
 
-  // 2. Kurashiru
   const kurashiruUrl = `https://www.kurashiru.com/search?query=${encodeURIComponent(ingredientsStr)}`;
   document.getElementById('link-recipe-kurashiru').href = kurashiruUrl;
 
-  // 3. Delish Kitchen
   const delishUrl = `https://delishkitchen.tv/search?q=${encodeURIComponent(ingredientsStr)}`;
   document.getElementById('link-recipe-delish').href = delishUrl;
 
@@ -1105,6 +1172,7 @@ document.getElementById('btn-import-data-file').addEventListener('change', (e) =
         saveToStorage();
         initTheme();
         populateLedgerBudgetForm();
+        updateFilterDropdowns();
         navigateTo('dashboard');
         alert('データを正常に読み込みました。');
       } else {
@@ -1143,6 +1211,7 @@ document.getElementById('btn-reset-app').addEventListener('click', () => {
     saveToStorage();
     initTheme();
     populateLedgerBudgetForm();
+    updateFilterDropdowns();
     navigateTo('dashboard');
     alert('すべてのデータを削除しました。');
   }
@@ -1166,6 +1235,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadFromStorage();
   initTheme();
   populateLedgerBudgetForm();
+  updateFilterDropdowns();
   navigateTo('dashboard');
 
   navButtons.forEach(btn => {
@@ -1179,7 +1249,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-quick-add').addEventListener('click', openAddItemModal);
   document.getElementById('btn-ledger-add-manual').addEventListener('click', openLedgerModal);
 
-  // Modals closing
   document.getElementById('btn-close-item-modal').addEventListener('click', closeItemModal);
   document.getElementById('btn-cancel-item-modal').addEventListener('click', closeItemModal);
   document.getElementById('btn-close-ledger-modal').addEventListener('click', closeLedgerModal);
@@ -1188,7 +1257,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-trigger-ocr').addEventListener('click', openOcrModal);
 
-  // Filters
   searchInput.addEventListener('input', renderFridge);
   categoryFilter.addEventListener('change', renderFridge);
   sortFilter.addEventListener('change', renderFridge);

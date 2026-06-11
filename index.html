@@ -9,7 +9,7 @@
   <!-- Google Fonts for Friendly Look -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Quicksand:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Quicksand:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&swap" rel="stylesheet">
   
   <!-- CSS Stylesheet -->
   <link rel="stylesheet" href="style.css">
@@ -34,23 +34,23 @@
       </div>
       <nav class="nav-links">
         <button class="nav-btn active" data-target="dashboard" id="nav-dash-desktop">
-          <i data-lucide="home"></i><span>おうちのようす</span>
+          <i data-lucide="home"></i><span>ダッシュボード</span>
         </button>
         <button class="nav-btn" data-target="fridge" id="nav-fridge-desktop">
           <i data-lucide="refrigerator"></i><span>冷蔵庫の中身</span>
         </button>
         <button class="nav-btn" data-target="ledger" id="nav-ledger-desktop">
-          <i data-lucide="book-open"></i><span>家計簿ノート</span>
+          <i data-lucide="book-open"></i><span>家計簿</span>
         </button>
         <button class="nav-btn" data-target="settings" id="nav-settings-desktop">
-          <i data-lucide="settings-2"></i><span>かんり設定</span>
+          <i data-lucide="settings-2"></i><span>管理設定</span>
         </button>
       </nav>
       <div class="sidebar-footer">
         <button class="theme-toggle" id="theme-toggle-desktop">
           <i data-lucide="sun" class="sun-icon"></i>
           <i data-lucide="moon" class="moon-icon"></i>
-          <span>きせかえ</span>
+          <span>テーマ切替</span>
         </button>
       </div>
     </aside>
@@ -61,12 +61,12 @@
       <!-- Top header -->
       <header class="top-header">
         <div class="header-title">
-          <h1 id="page-title">おうちのようす</h1>
+          <h1 id="page-title">ダッシュボード</h1>
           <p id="page-subtitle" class="text-secondary">今日の冷蔵庫と家計簿のまとめです。</p>
         </div>
         <div class="header-actions">
           <button class="btn btn-primary" id="btn-quick-add">
-            <i data-lucide="plus-circle"></i><span>食材を入れる</span>
+            <i data-lucide="plus-circle"></i><span>食材を登録</span>
           </button>
         </div>
       </header>
@@ -81,22 +81,22 @@
           <!-- Summary Card: Fridge Status -->
           <div class="glass-card summary-card fridge-summary">
             <div class="card-header">
-              <h3>冷蔵庫の中身</h3>
+              <h3>冷蔵庫の状況</h3>
               <i data-lucide="heart" class="text-primary"></i>
             </div>
             <div class="card-body">
               <div class="stat-group">
                 <div class="stat-item">
                   <span class="stat-val text-danger" id="dash-expired-count">0</span>
-                  <span class="stat-lbl">はやく食べて！</span>
+                  <span class="stat-lbl">期限切れ</span>
                 </div>
                 <div class="stat-item">
                   <span class="stat-val text-warning" id="dash-warning-count">0</span>
-                  <span class="stat-lbl">もうすぐ期限</span>
+                  <span class="stat-lbl">期限切迫</span>
                 </div>
                 <div class="stat-item">
                   <span class="stat-val text-success" id="dash-total-count">0</span>
-                  <span class="stat-lbl">ぜんぶの食材</span>
+                  <span class="stat-lbl">登録食材数</span>
                 </div>
               </div>
             </div>
@@ -105,18 +105,18 @@
           <!-- Summary Card: Ledger Budget -->
           <div class="glass-card summary-card budget-summary">
             <div class="card-header">
-              <h3>今月のお財布</h3>
+              <h3>今月の収支</h3>
               <i data-lucide="pie-chart" class="text-success"></i>
             </div>
             <div class="card-body">
               <div class="budget-progress-container">
                 <div class="budget-numbers">
                   <div>
-                    <span class="text-secondary text-sm" id="dash-period-label">今期のしゅっぴ</span>
+                    <span class="text-secondary text-sm" id="dash-period-label">今期の支出</span>
                     <h3 id="dash-expense-total">¥0</h3>
                   </div>
                   <div class="text-right">
-                    <span class="text-secondary text-sm">つかえる予算</span>
+                    <span class="text-secondary text-sm">使える予算</span>
                     <h4 id="dash-budget-limit">¥0</h4>
                   </div>
                 </div>
@@ -124,7 +124,7 @@
                   <div class="progress-bar-fill" id="budget-progress-bar" style="width: 0%"></div>
                 </div>
                 <div class="budget-status-text" id="dash-budget-status">
-                  のこり予算：¥0
+                  残り予算：¥0
                 </div>
               </div>
             </div>
@@ -137,16 +137,16 @@
           <!-- Expiring Items Alerts -->
           <div class="glass-card flex-2">
             <div class="card-header border-b">
-              <h3>期限がちかい食材</h3>
+              <h3>期限が近い食材</h3>
               <button class="btn btn-text text-sm btn-view-all-fridge" id="btn-dash-fridge-all">
-                冷蔵庫をみる <i data-lucide="chevron-right"></i>
+                冷蔵庫を見る <i data-lucide="chevron-right"></i>
               </button>
             </div>
             <div class="card-body p-0">
               <div class="item-list-compact" id="dash-expiring-list">
                 <div class="empty-state">
                   <i data-lucide="smile" class="text-success"></i>
-                  <p>期限がちかい食材はありません</p>
+                  <p>期限が近い食材はありません</p>
                 </div>
               </div>
             </div>
@@ -155,9 +155,9 @@
           <!-- Recent Ledger Expenses -->
           <div class="glass-card flex-1">
             <div class="card-header border-b">
-              <h3>さいきんのしゅっぴ</h3>
+              <h3>最近の支出</h3>
               <button class="btn btn-text text-sm btn-view-all-ledger" id="btn-dash-ledger-all">
-                家計簿をみる <i data-lucide="chevron-right"></i>
+                家計簿を見る <i data-lucide="chevron-right"></i>
               </button>
             </div>
             <div class="card-body p-0">
@@ -192,24 +192,25 @@
         <div class="section-controls">
           <div class="search-bar">
             <i data-lucide="search" class="search-icon"></i>
-            <input type="text" id="fridge-search-input" placeholder="食材をさがす...">
+            <input type="text" id="fridge-search-input" placeholder="食材を探す...">
           </div>
           <div class="filter-group">
             <select id="fridge-category-filter">
-              <option value="all">すべての種類</option>
+              <!-- Dynamically populated to support custom entries -->
+              <option value="all">すべてのカテゴリ</option>
               <option value="meat_fish">肉・魚</option>
               <option value="vegetable">野菜・果物</option>
               <option value="dairy">乳製品</option>
-              <option value="drink">のみもの</option>
+              <option value="drink">飲料</option>
               <option value="seasoning">調味料</option>
-              <option value="processed">加工食品・おやつ</option>
+              <option value="processed">加工食品</option>
               <option value="other">その他</option>
             </select>
             <select id="fridge-sort-filter">
-              <option value="expiry_asc">期限がちかい順</option>
-              <option value="expiry_desc">期限がとおい順</option>
-              <option value="name_asc">なまえ順</option>
-              <option value="date_desc">入れた日が新しい順</option>
+              <option value="expiry_asc">期限が近い順</option>
+              <option value="expiry_desc">期限が遠い順</option>
+              <option value="name_asc">名前順</option>
+              <option value="date_desc">登録日が新しい順</option>
             </select>
           </div>
         </div>
@@ -217,16 +218,15 @@
         <!-- Recipe generation helper bar -->
         <div class="fridge-recipe-bar glass-card mb-4" id="fridge-recipe-action-bar" style="display: none;">
           <div class="recipe-bar-content">
-            <span class="text-sm"><strong id="selected-items-count">0</strong> 個の食材を選びました</span>
+            <span class="text-sm"><strong id="selected-items-count">0</strong> 個の食材を選択中</span>
             <button class="btn btn-primary btn-sm" id="btn-recipe-suggest">
-              <i data-lucide="chef-hat"></i><span>この食材でレシピを調べる</span>
+              <i data-lucide="chef-hat"></i><span>この食材でレシピを検索</span>
             </button>
           </div>
         </div>
 
         <!-- Fridge Shelves Visual Frame -->
         <div class="fridge-refrigerator-box">
-          <div class="fridge-shelf-line"></div>
           <div class="fridge-grid" id="fridge-items-container">
             <!-- Dynamic Fridge Cards inside mock shelves -->
           </div>
@@ -241,7 +241,7 @@
           <summary class="accordion-summary">
             <div class="summary-title">
               <i data-lucide="sliders" class="text-primary"></i>
-              <strong>今期のやりくり設定（締め日・予算・繰越金）</strong>
+              <strong>今期のやりくり設定（開始日・予算・繰越金）</strong>
             </div>
             <span class="accordion-arrow"><i data-lucide="chevron-down"></i></span>
           </summary>
@@ -250,28 +250,29 @@
               
               <!-- 1. Start Day Configuration -->
               <div class="form-group">
-                <label for="ledger-start-day-input">毎月の締め日（開始日）</label>
+                <label for="ledger-start-day-input">毎月の開始日（締め日）</label>
                 <div class="input-with-action">
                   <select id="ledger-start-day-input">
                     <!-- Javascript will populate 1 to 31 -->
                   </select>
                   <span class="input-suffix-text">日スタート</span>
                 </div>
-                <small class="text-muted">給料日などに合わせて家計簿の1ヶ月を設定できます。</small>
+                <small class="text-muted">給料日等に合わせて家計簿の1ヶ月を設定できます。</small>
               </div>
 
               <!-- 2. Carry over from last month -->
               <div class="form-group">
-                <label for="ledger-carry-over-input">前月からのくりこし金 (円)</label>
+                <label for="ledger-carry-over-input">前月からの繰越金 (円)</label>
                 <input type="number" id="ledger-carry-over-input" min="0" placeholder="例: 5000">
-                <small class="text-muted">今月の予算にプラスされます。</small>
+                <small class="text-muted">今月の予算に加算されます。</small>
               </div>
 
             </div>
 
             <div class="category-budget-settings mt-4">
               <h4>カテゴリごとの予算設定</h4>
-              <div class="budget-inputs-row">
+              <div class="budget-inputs-row" id="ledger-budget-inputs-container">
+                <!-- Dynamically populated or updated in app.js -->
                 <div class="input-with-label">
                   <label for="budget-food">食費</label>
                   <input type="number" id="budget-food" min="0" placeholder="0">
@@ -311,13 +312,13 @@
 
         <div class="ledger-analytics">
           <div class="glass-card chart-card">
-            <h3>カテゴリ別のしゅっぴ</h3>
+            <h3>カテゴリ別の支出</h3>
             <div class="chart-container">
               <canvas id="ledger-pie-chart"></canvas>
             </div>
           </div>
           <div class="glass-card chart-card">
-            <h3>月別のつかいかた</h3>
+            <h3>月別の支出推移</h3>
             <div class="chart-container">
               <canvas id="ledger-bar-chart"></canvas>
             </div>
@@ -327,10 +328,11 @@
         <div class="section-controls border-t pt-4 mt-6">
           <div class="search-bar">
             <i data-lucide="search" class="search-icon"></i>
-            <input type="text" id="ledger-search-input" placeholder="履歴をさがす...">
+            <input type="text" id="ledger-search-input" placeholder="履歴を探す...">
           </div>
           <div class="filter-group">
             <select id="ledger-category-filter">
+              <!-- Dynamically populated to support custom entries -->
               <option value="all">すべてのカテゴリ</option>
               <option value="food">食費 (冷蔵庫連携)</option>
               <option value="eat_out">外食</option>
@@ -341,7 +343,7 @@
               <option value="other">その他</option>
             </select>
             <button class="btn btn-secondary" id="btn-ledger-add-manual">
-              <i data-lucide="plus"></i><span>しゅっぴの追加</span>
+              <i data-lucide="plus"></i><span>支出の追加</span>
             </button>
           </div>
         </div>
@@ -369,16 +371,16 @@
         </div>
       </section>
 
-      <!-- 4. SETTINGS SECTION (Cleaned up settings) -->
+      <!-- 4. SETTINGS SECTION -->
       <section id="section-settings" class="content-section">
         <div class="settings-container">
           
-          <!-- Premium Plan Simulator Status (Mock Recipe Lock) -->
+          <!-- Premium Plan Simulator Status -->
           <div class="glass-card settings-card" id="premium-status-card">
             <div class="settings-title-group">
               <i data-lucide="award" class="text-warning icon-lg"></i>
               <div>
-                <h3>おうちのレシピ提案プラン (プレミアム)</h3>
+                <h3>レシピ提案機能（プレミアムプラン）</h3>
                 <p class="text-secondary text-sm">冷蔵庫にある食材をまとめてレシピ提案が受けられるプレミアム機能です。</p>
               </div>
             </div>
@@ -422,7 +424,7 @@
               </div>
             </div>
             <div class="settings-action-group mt-4">
-              <button class="btn btn-danger" id="btn-reset-app">データをぜんぶ消去する</button>
+              <button class="btn btn-danger" id="btn-reset-app">データをすべて消去する</button>
             </div>
           </div>
         </div>
@@ -458,20 +460,20 @@
   <div class="modal-backdrop" id="modal-item-form">
     <div class="modal-content glass-modal">
       <div class="modal-header">
-        <h3 id="item-modal-title">食材を入れる</h3>
+        <h3 id="item-modal-title">食材の登録</h3>
         <button class="modal-close" id="btn-close-item-modal"><i data-lucide="x"></i></button>
       </div>
       <form id="form-fridge-item" class="modal-form">
         <input type="hidden" id="form-item-id">
         
         <div class="form-group">
-          <label for="form-item-name">食材のなまえ <span class="text-danger">*</span></label>
+          <label for="form-item-name">食材名 <span class="text-danger">*</span></label>
           <input type="text" id="form-item-name" placeholder="例: キャベツ、豚肉、牛乳" required>
         </div>
 
         <div class="form-row">
           <div class="form-group flex-1">
-            <label for="form-item-location">保存する場所 <span class="text-danger">*</span></label>
+            <label for="form-item-location">保存場所 <span class="text-danger">*</span></label>
             <select id="form-item-location" required>
               <option value="fridge" selected>冷蔵室</option>
               <option value="freezer">冷凍室</option>
@@ -479,22 +481,29 @@
             </select>
           </div>
           <div class="form-group flex-1">
-            <label for="form-item-category">しゅるい <span class="text-danger">*</span></label>
+            <label for="form-item-category">カテゴリ <span class="text-danger">*</span></label>
             <select id="form-item-category" required>
               <option value="meat_fish">肉・魚</option>
               <option value="vegetable">野菜・果物</option>
               <option value="dairy">乳製品</option>
-              <option value="drink">のみもの</option>
+              <option value="drink">飲料</option>
               <option value="seasoning">調味料</option>
-              <option value="processed">加工食品・おやつ</option>
+              <option value="processed">加工食品</option>
               <option value="other" selected>その他</option>
+              <option value="custom">新規入力...</option>
             </select>
           </div>
         </div>
 
+        <!-- Custom Category input for food (Hidden by default) -->
+        <div class="form-group" id="form-item-custom-category-container" style="display: none;">
+          <label for="form-item-custom-category">新しいカテゴリ名 <span class="text-danger">*</span></label>
+          <input type="text" id="form-item-custom-category" placeholder="例: 非常食、調味スパイス">
+        </div>
+
         <div class="form-row">
           <div class="form-group flex-1">
-            <label for="form-item-quantity">量 / 単位</label>
+            <label for="form-item-quantity">数量 / 単位</label>
             <input type="text" id="form-item-quantity" placeholder="例: 1パック、半玉">
           </div>
         </div>
@@ -513,17 +522,17 @@
         <!-- Ledger connection -->
         <div class="form-checkbox-group">
           <input type="checkbox" id="form-item-sync-ledger" checked>
-          <label for="form-item-sync-ledger">家計簿（食費）に自動で追加する</label>
+          <label for="form-item-sync-ledger">家計簿（食費）に自動追加する</label>
         </div>
 
         <div class="form-group" id="form-item-price-container">
-          <label for="form-item-price">買ったねだん (円)</label>
+          <label for="form-item-price">価格 (円)</label>
           <input type="number" id="form-item-price" min="0" placeholder="例: 158" value="0">
         </div>
 
         <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" id="btn-cancel-item-modal">やめる</button>
-          <button type="submit" class="btn btn-primary" id="btn-save-item-modal">冷蔵庫に入れる</button>
+          <button type="button" class="btn btn-secondary" id="btn-cancel-item-modal">キャンセル</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-item-modal">冷蔵庫に追加</button>
         </div>
       </form>
     </div>
@@ -533,14 +542,14 @@
   <div class="modal-backdrop" id="modal-ocr-camera">
     <div class="modal-content glass-modal camera-modal-content">
       <div class="modal-header">
-        <h3>賞味期限をパシャリ</h3>
+        <h3>賞味期限の読み取り</h3>
         <button class="modal-close" id="btn-close-ocr-modal"><i data-lucide="x"></i></button>
       </div>
       <div class="camera-viewport-container">
         <video id="camera-stream" autoplay playsinline></video>
         <div class="camera-guide-frame">
           <div class="guide-box"></div>
-          <p class="guide-text">賞味期限の日付をワクに合わせてくださいね</p>
+          <p class="guide-text">賞味期限の日付を枠に合わせてください</p>
         </div>
         <canvas id="camera-capture-canvas" style="display: none;"></canvas>
       </div>
@@ -548,12 +557,12 @@
       <div class="ocr-status-container">
         <div class="ocr-loader-spinner" id="ocr-loader" style="display: none;">
           <div class="spinner"></div>
-          <p id="ocr-loader-text">文字をよみとり中...</p>
+          <p id="ocr-loader-text">文字を解析中...</p>
         </div>
         <div class="ocr-result-feedback" id="ocr-result-container" style="display: none;">
           <i data-lucide="check-circle" class="text-success"></i>
           <div>
-            <span class="text-sm text-secondary">よみとれた日付:</span>
+            <span class="text-sm text-secondary">読み取れた日付:</span>
             <strong id="ocr-result-text">2026-06-30</strong>
           </div>
         </div>
@@ -562,10 +571,10 @@
       <div class="modal-actions-camera">
         <button class="btn btn-secondary" id="btn-camera-toggle-facing">カメラを切り替える</button>
         <button class="btn btn-primary btn-large" id="btn-camera-capture">
-          <i data-lucide="aperture"></i> 撮影してよみとる
+          <i data-lucide="aperture"></i> 撮影して読み取る
         </button>
         <label class="btn btn-secondary" for="btn-camera-upload-fallback">
-          <i data-lucide="image"></i> 写真フォルダから選ぶ
+          <i data-lucide="image"></i> 画像ファイルから選択
           <input type="file" id="btn-camera-upload-fallback" accept="image/*" style="display: none;">
         </label>
       </div>
@@ -576,18 +585,18 @@
   <div class="modal-backdrop" id="modal-ledger-manual">
     <div class="modal-content glass-modal">
       <div class="modal-header">
-        <h3>しゅっぴの追加</h3>
+        <h3>支出の追加</h3>
         <button class="modal-close" id="btn-close-ledger-modal"><i data-lucide="x"></i></button>
       </div>
       <form id="form-ledger-manual" class="modal-form">
         <div class="form-group">
-          <label for="form-ledger-date">買った日 <span class="text-danger">*</span></label>
+          <label for="form-ledger-date">購入日 <span class="text-danger">*</span></label>
           <input type="date" id="form-ledger-date" required>
         </div>
         
         <div class="form-group">
           <label for="form-ledger-name">お買い物の内容 <span class="text-danger">*</span></label>
-          <input type="text" id="form-ledger-name" placeholder="例: スーパーお買い物、電車代、映画" required>
+          <input type="text" id="form-ledger-name" placeholder="例: スーパー買い出し、電車代、映画" required>
         </div>
 
         <div class="form-row">
@@ -601,6 +610,7 @@
               <option value="entertainment">娯楽費</option>
               <option value="travel_telecom">交通・通信費</option>
               <option value="other" selected>その他</option>
+              <option value="custom">新規入力...</option>
             </select>
           </div>
           <div class="form-group flex-1">
@@ -609,26 +619,32 @@
           </div>
         </div>
 
+        <!-- Custom Category input for ledger (Hidden by default) -->
+        <div class="form-group" id="form-ledger-custom-category-container" style="display: none;">
+          <label for="form-ledger-custom-category">新しいカテゴリ名 <span class="text-danger">*</span></label>
+          <input type="text" id="form-ledger-custom-category" placeholder="例: 美容費、交際費、教育費">
+        </div>
+
         <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" id="btn-cancel-ledger-modal">やめる</button>
+          <button type="button" class="btn btn-secondary" id="btn-cancel-ledger-modal">キャンセル</button>
           <button type="submit" class="btn btn-primary">登録する</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- D. Premium Plan Info Modal (Recipe Locks) -->
+  <!-- D. Premium Plan Info Modal -->
   <div class="modal-backdrop" id="modal-premium-intro">
     <div class="modal-content glass-modal text-center">
       <div class="modal-header">
-        <h3>レシピ提案機能 (プレミアムプラン)</h3>
+        <h3>レシピ提案機能（プレミアム）</h3>
         <button class="modal-close" id="btn-close-premium-modal"><i data-lucide="x"></i></button>
       </div>
       <div class="premium-feature-showcase py-4">
         <div class="premium-badge-icon mb-4">
           <i data-lucide="chef-hat" style="width:60px; height:60px; color:var(--primary); margin:0 auto; display:block;"></i>
         </div>
-        <h4 class="mb-2">冷蔵庫の中身で献立づくりをもっと楽に！</h4>
+        <h4 class="mb-2">冷蔵庫の食材で献立づくりをもっと楽に！</h4>
         <p class="text-secondary text-sm mb-4">
           チェックを入れた食材から自動でレシピキーワードを生成し、クックパッドやクラシルから最適なお料理レシピをスピーディーに見つけて提案する機能です。
         </p>
@@ -644,7 +660,7 @@
     </div>
   </div>
 
-  <!-- E. Recipe Links Modal (Unlocked) -->
+  <!-- E. Recipe Links Modal -->
   <div class="modal-backdrop" id="modal-recipe-proposal">
     <div class="modal-content glass-modal">
       <div class="modal-header">
@@ -653,7 +669,7 @@
       </div>
       <div class="recipe-proposal-body">
         <p class="mb-3 text-secondary text-sm">
-          選んだ食材： <strong id="recipe-selected-ingredients" class="text-primary">--</strong>
+          選択した食材： <strong id="recipe-selected-ingredients" class="text-primary">--</strong>
         </p>
         <p class="mb-4">これらの食材を使って、レシピサイトから美味しい献立を探してみましょう！</p>
         
