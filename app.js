@@ -48,25 +48,26 @@ const LEDGER_CATEGORIES = {
 };
 
 // 18 theme colors requested by user (excluding raw colors, including dark & pastel shades)
+// Replaced with colored-pencil style softer, warmer hues
 const AVAILABLE_THEME_COLORS = [
-  { name: '赤 (濃いめ)', hex: '#b7094c' },
-  { name: '赤 (パステル)', hex: '#ff8fa3' },
-  { name: 'ピンク (濃いめ)', hex: '#c9184a' },
-  { name: 'ピンク (パステル)', hex: '#ffccd5' },
-  { name: 'オレンジ (濃いめ)', hex: '#e85d04' },
-  { name: 'オレンジ (パステル)', hex: '#ffd8be' },
-  { name: '黄色', hex: '#ffe494' },
-  { name: '黄緑', hex: '#c7f9cc' },
-  { name: '緑 (濃いめ)', hex: '#2d6a4f' },
-  { name: '緑 (パステル)', hex: '#b7e4c7' },
-  { name: '水色', hex: '#bde0fe' },
-  { name: '青 (濃いめ)', hex: '#1d3557' },
-  { name: '青 (パステル)', hex: '#a2d2ff' },
-  { name: '紫 (濃いめ)', hex: '#5a189a' },
-  { name: '紫 (パステル)', hex: '#dec9e9' },
-  { name: '黒', hex: '#212529' },
-  { name: '白', hex: '#f8f9fa' },
-  { name: '灰色', hex: '#adb5bd' }
+  { name: '赤 (濃いめ)', hex: '#cc4e46' },
+  { name: '赤 (パステル)', hex: '#ffa1a1' },
+  { name: 'ピンク (濃いめ)', hex: '#d66b82' },
+  { name: 'ピンク (パステル)', hex: '#ffd6e0' },
+  { name: 'オレンジ (濃いめ)', hex: '#e08244' },
+  { name: 'オレンジ (パステル)', hex: '#ffd4b2' },
+  { name: '黄色', hex: '#f7d070' },
+  { name: '黄緑', hex: '#9ecb65' },
+  { name: '緑 (濃いめ)', hex: '#4a8c6f' },
+  { name: '緑 (パステル)', hex: '#badabe' },
+  { name: '水色', hex: '#98d1e3' },
+  { name: '青 (濃いめ)', hex: '#3f609e' },
+  { name: '青 (パステル)', hex: '#aacce2' },
+  { name: '紫 (濃いめ)', hex: '#8968a6' },
+  { name: '紫 (パステル)', hex: '#dec8f0' },
+  { name: '黒', hex: '#363534' },
+  { name: '白', hex: '#fbfaf7' },
+  { name: '灰色', hex: '#9fa0a0' }
 ];
 
 // Active room tab in fridge ("fridge", "freezer", "vegetable")
