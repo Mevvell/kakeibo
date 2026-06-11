@@ -65,8 +65,11 @@
           <p id="page-subtitle" class="text-secondary">今日の冷蔵庫と家計簿のまとめです。</p>
         </div>
         <div class="header-actions">
-          <button class="btn btn-primary" id="btn-quick-add">
+          <button class="btn btn-primary" id="btn-quick-add" style="display: none;">
             <i data-lucide="plus-circle"></i><span>食材を登録</span>
+          </button>
+          <button class="btn btn-primary" id="btn-quick-add-ledger" style="display: none;">
+            <i data-lucide="plus-circle"></i><span>支出を追加</span>
           </button>
         </div>
       </header>
@@ -196,7 +199,6 @@
           </div>
           <div class="filter-group">
             <select id="fridge-category-filter">
-              <!-- Dynamically populated to support custom entries -->
               <option value="all">すべてのカテゴリ</option>
               <option value="meat_fish">肉・魚</option>
               <option value="vegetable">野菜・果物</option>
@@ -272,7 +274,6 @@
             <div class="category-budget-settings mt-4">
               <h4>カテゴリごとの予算設定</h4>
               <div class="budget-inputs-row" id="ledger-budget-inputs-container">
-                <!-- Dynamically populated or updated in app.js -->
                 <div class="input-with-label">
                   <label for="budget-food">食費</label>
                   <input type="number" id="budget-food" min="0" placeholder="0">
@@ -332,9 +333,8 @@
           </div>
           <div class="filter-group">
             <select id="ledger-category-filter">
-              <!-- Dynamically populated to support custom entries -->
               <option value="all">すべてのカテゴリ</option>
-              <option value="food">食費 (冷蔵庫連携)</option>
+              <option value="food">食費</option>
               <option value="eat_out">外食</option>
               <option value="daily_necessities">日用品</option>
               <option value="utilities">光熱費</option>
@@ -342,9 +342,6 @@
               <option value="travel_telecom">交通・通信費</option>
               <option value="other">その他</option>
             </select>
-            <button class="btn btn-secondary" id="btn-ledger-add-manual">
-              <i data-lucide="plus"></i><span>支出の追加</span>
-            </button>
           </div>
         </div>
 
@@ -375,6 +372,20 @@
       <section id="section-settings" class="content-section">
         <div class="settings-container">
           
+          <!-- Color customisation container (User Request) -->
+          <div class="glass-card settings-card">
+            <div class="settings-title-group">
+              <i data-lucide="palette" class="text-primary icon-lg"></i>
+              <div>
+                <h3>テーマカラーの変更</h3>
+                <p class="text-secondary text-sm">アプリ全体のテーマカラーをカスタマイズできます。</p>
+              </div>
+            </div>
+            <div class="theme-color-palette-container mt-4" id="theme-color-palette">
+              <!-- Dynamic colour circles injected via Javascript -->
+            </div>
+          </div>
+
           <!-- Premium Plan Simulator Status -->
           <div class="glass-card settings-card" id="premium-status-card">
             <div class="settings-title-group">
@@ -517,17 +528,6 @@
             </button>
           </div>
           <small class="text-secondary">カメラボタンを押すと、パッケージの賞味期限の日付を読み取ります。</small>
-        </div>
-
-        <!-- Ledger connection -->
-        <div class="form-checkbox-group">
-          <input type="checkbox" id="form-item-sync-ledger" checked>
-          <label for="form-item-sync-ledger">家計簿（食費）に自動追加する</label>
-        </div>
-
-        <div class="form-group" id="form-item-price-container">
-          <label for="form-item-price">価格 (円)</label>
-          <input type="number" id="form-item-price" min="0" placeholder="例: 158" value="0">
         </div>
 
         <div class="modal-actions">

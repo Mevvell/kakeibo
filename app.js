@@ -1,7 +1,7 @@
 /**
  * Main Application Logic for おうちの冷蔵庫メモ ＆ 家計簿
  * Coordinates state, localStorage, periods calculation, integrated budgets, and premium recipes.
- * Format adapted for adult users (proper Kanji UI) with custom category fields and airy spacing.
+ * Format adapted for adult users (proper Kanji UI) with custom category fields, dynamic colors, and airy spacing.
  */
 
 // APPLICATION STATE
@@ -21,11 +21,12 @@ let state = {
       other: 5000
     },
     isPremium: false, // Simulator for mock premium subscription
-    theme: 'light'
+    theme: 'light',
+    themeColor: '#ff7a59' // Default theme color (Cozy Salmon Coral)
   }
 };
 
-// CATEGORY CONFIGURATIONS & LABELS (Will grow dynamically as users add custom categories)
+// CATEGORY CONFIGURATIONS & LABELS
 const FRIDGE_CATEGORIES = {
   meat_fish: '肉・魚',
   vegetable: '野菜・果物',
@@ -37,7 +38,7 @@ const FRIDGE_CATEGORIES = {
 };
 
 const LEDGER_CATEGORIES = {
-  food: '食費 (冷蔵庫連携)',
+  food: '食費',
   eat_out: '外食',
   daily_necessities: '日用品',
   utilities: '光熱費',
@@ -46,6 +47,28 @@ const LEDGER_CATEGORIES = {
   other: 'その他'
 };
 
+// 18 theme colors requested by user (excluding raw colors, including dark & pastel shades)
+const AVAILABLE_THEME_COLORS = [
+  { name: '赤 (濃いめ)', hex: '#b7094c' },
+  { name: '赤 (パステル)', hex: '#ff8fa3' },
+  { name: 'ピンク (濃いめ)', hex: '#c9184a' },
+  { name: 'ピンク (パステル)', hex: '#ffccd5' },
+  { name: 'オレンジ (濃いめ)', hex: '#e85d04' },
+  { name: 'オレンジ (パステル)', hex: '#ffd8be' },
+  { name: '黄色', hex: '#ffe494' },
+  { name: '黄緑', hex: '#c7f9cc' },
+  { name: '緑 (濃いめ)', hex: '#2d6a4f' },
+  { name: '緑 (パステル)', hex: '#b7e4c7' },
+  { name: '水色', hex: '#bde0fe' },
+  { name: '青 (濃いめ)', hex: '#1d3557' },
+  { name: '青 (パステル)', hex: '#a2d2ff' },
+  { name: '紫 (濃いめ)', hex: '#5a189a' },
+  { name: '紫 (パステル)', hex: '#dec9e9' },
+  { name: '黒', hex: '#212529' },
+  { name: '白', hex: '#f8f9fa' },
+  { name: '灰色', hex: '#adb5bd' }
+];
+
 // Active room tab in fridge ("fridge", "freezer", "vegetable")
 let activeFridgeRoom = 'fridge';
 // Checked fridge item IDs for recipe generation
@@ -53,11 +76,11 @@ let selectedIngredients = new Set();
 
 // LOCAL STORAGE SYNC
 function saveToStorage() {
-  localStorage.setItem('smart_fridge_ledger_state_v2', JSON.stringify(state));
+  localStorage.setItem('smart_fridge_ledger_state_v3', JSON.stringify(state));
 }
 
 function loadFromStorage() {
-  const data = localStorage.getItem('smart_fridge_ledger_state_v2');
+  const data = localStorage.getItem('smart_fridge_ledger_state_v3');
   if (data) {
     try {
       state = JSON.parse(data);
@@ -71,6 +94,7 @@ function loadFromStorage() {
       if (s.carryOver === undefined) s.carryOver = 0;
       if (s.isPremium === undefined) s.isPremium = false;
       if (s.theme === undefined) s.theme = 'light';
+      if (s.themeColor === undefined) s.themeColor = '#ff7a59';
       
       if (!s.budgets) {
         s.budgets = {
@@ -94,13 +118,11 @@ function loadFromStorage() {
           else if (item.category === 'meat_fish') item.location = 'freezer';
           else item.location = 'fridge';
         }
-        // If it is a custom category, register it to temporary map
         if (item.category && !FRIDGE_CATEGORIES[item.category]) {
           FRIDGE_CATEGORIES[item.category] = item.category;
         }
       });
 
-      // Scan and register custom categories for Ledger
       state.ledgerItems.forEach(item => {
         if (item.category && !LEDGER_CATEGORIES[item.category]) {
           LEDGER_CATEGORIES[item.category] = item.category;
@@ -133,11 +155,11 @@ function injectDemoData() {
   ];
 
   state.ledgerItems = [
-    { id: 'l1', date: formatDate(-3), name: 'スーパー買い出し (牛乳・野菜)', category: 'food', price: 1250 },
-    { id: 'l2', date: formatDate(-1), name: 'お惣菜・弁当', category: 'food', price: 980 },
-    { id: 'l3', date: formatDate(0), name: '居酒屋飲み会', category: 'eat_out', price: 4500 },
+    { id: 'l1', date: formatDate(-3), name: 'スーパー食費買い出し', category: 'food', price: 2450 },
+    { id: 'l2', date: formatDate(-1), name: 'お惣菜・コンビニ弁当', category: 'food', price: 980 },
+    { id: 'l3', date: formatDate(0), name: '同僚との飲み会', category: 'eat_out', price: 4500 },
     { id: 'l4', date: formatDate(-5), name: '洗剤・ティッシュ', category: 'daily_necessities', price: 720 },
-    { id: 'l5', date: formatDate(-7), name: 'スマートフォン代', category: 'travel_telecom', price: 4200 },
+    { id: 'l5', date: formatDate(-7), name: 'スマートフォン回線代', category: 'travel_telecom', price: 4200 },
     { id: 'l6', date: formatDate(-2), name: '映画鑑賞チケット', category: 'entertainment', price: 1900 },
     { id: 'l7', date: formatDate(-10), name: '水道料金', category: 'utilities', price: 3800 }
   ];
@@ -155,7 +177,8 @@ function injectDemoData() {
       other: 5000
     },
     isPremium: false,
-    theme: 'light'
+    theme: 'light',
+    themeColor: '#ff7a59'
   };
   saveToStorage();
 }
@@ -219,6 +242,9 @@ const pageTitle = document.getElementById('page-title');
 const pageSubtitle = document.getElementById('page-subtitle');
 const navButtons = document.querySelectorAll('.nav-btn, .mobile-nav-btn');
 
+const btnQuickAddFridge = document.getElementById('btn-quick-add');
+const btnQuickAddLedger = document.getElementById('btn-quick-add-ledger');
+
 // DYNAMICALLY POPULATE CATEGORY FILTERS
 function updateFilterDropdowns() {
   const fridgeDropdown = document.getElementById('fridge-category-filter');
@@ -227,7 +253,6 @@ function updateFilterDropdowns() {
   const selectedFridgeVal = fridgeDropdown.value;
   const selectedLedgerVal = ledgerDropdown.value;
 
-  // 1. Fridge categories
   fridgeDropdown.innerHTML = '<option value="all">すべてのカテゴリ</option>';
   Object.keys(FRIDGE_CATEGORIES).forEach(key => {
     const opt = document.createElement('option');
@@ -236,9 +261,8 @@ function updateFilterDropdowns() {
     fridgeDropdown.appendChild(opt);
   });
   fridgeDropdown.value = selectedFridgeVal;
-  if (!fridgeDropdown.value) fridgeDropdown.value = 'all'; // Fallback if old deleted
+  if (!fridgeDropdown.value) fridgeDropdown.value = 'all';
 
-  // 2. Ledger categories
   ledgerDropdown.innerHTML = '<option value="all">すべてのカテゴリ</option>';
   Object.keys(LEDGER_CATEGORIES).forEach(key => {
     const opt = document.createElement('option');
@@ -250,7 +274,110 @@ function updateFilterDropdowns() {
   if (!ledgerDropdown.value) ledgerDropdown.value = 'all';
 }
 
-// ROUTING / NAVIGATION
+// DYNAMIC THEME COLOR APPLICATOR
+function applyThemeColor(color) {
+  document.documentElement.style.setProperty('--primary', color);
+  document.documentElement.style.setProperty('--primary-glow', color + '26'); // 15% opacity hex
+  
+  // Calculate slightly darker shade for hover (approx 12% darker)
+  const hoverColor = adjustColorBrightness(color, -12);
+  document.documentElement.style.setProperty('--primary-hover', hoverColor);
+
+  // Determine contrast text color on primary background
+  const contrastColor = getContrastColor(color);
+  document.documentElement.style.setProperty('--primary-text', contrastColor);
+
+  // High contrast fallback text color for text using primary color
+  const highContrastTextColor = getHighContrastTextColor(color);
+  document.documentElement.style.setProperty('--primary-text-dark', highContrastTextColor);
+
+  // Sync with charts settings dynamically
+  if (window.ledgerCharts) {
+    window.ledgerCharts.categories.food.color = color;
+    // Redraw charts if ledger is active
+    if (sections.ledger.classList.contains('active')) {
+      renderLedger();
+    }
+  }
+}
+
+function getContrastColor(hex) {
+  const cleanHex = hex.replace('#', '');
+  const r = parseInt(cleanHex.substring(0, 2), 16);
+  const g = parseInt(cleanHex.substring(2, 4), 16);
+  const b = parseInt(cleanHex.substring(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.7 ? '#4a3f35' : '#ffffff';
+}
+
+function getHighContrastTextColor(hex) {
+  const cleanHex = hex.replace('#', '');
+  const r = parseInt(cleanHex.substring(0, 2), 16);
+  const g = parseInt(cleanHex.substring(2, 4), 16);
+  const b = parseInt(cleanHex.substring(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.75 ? '#b7094c' : hex;
+}
+
+/**
+ * Helper to adjust hex color brightness (percentage value e.g. -15 or +15)
+ */
+function adjustColorBrightness(hex, percent) {
+  let R = parseInt(hex.substring(1, 3), 16);
+  let G = parseInt(hex.substring(3, 5), 16);
+  let B = parseInt(hex.substring(5, 7), 16);
+
+  R = parseInt(R * (100 + percent) / 100);
+  G = parseInt(G * (100 + percent) / 100);
+  B = parseInt(B * (100 + percent) / 100);
+
+  R = (R < 255) ? R : 255;
+  G = (G < 255) ? G : 255;
+  B = (B < 255) ? B : 255;
+
+  R = (R > 0) ? R : 0;
+  G = (G > 0) ? G : 0;
+  B = (B > 0) ? B : 0;
+
+  const rHex = R.toString(16).padStart(2, '0');
+  const gHex = G.toString(16).padStart(2, '0');
+  const bHex = B.toString(16).padStart(2, '0');
+
+  return `#${rHex}${gHex}${bHex}`;
+}
+
+// DYNAMICALLY GENERATE COLOR PICKER BUTTONS IN SETTINGS
+function renderColorPalettePicker() {
+  const container = document.getElementById('theme-color-palette');
+  if (!container) return;
+
+  container.innerHTML = '';
+  AVAILABLE_THEME_COLORS.forEach(color => {
+    const btn = document.createElement('button');
+    btn.className = 'color-palette-btn';
+    btn.style.backgroundColor = color.hex;
+    btn.title = color.name;
+    
+    if (state.settings.themeColor === color.hex) {
+      btn.classList.add('active');
+    }
+
+    btn.addEventListener('click', () => {
+      // Deactivate all
+      container.querySelectorAll('.color-palette-btn').forEach(b => b.classList.remove('active'));
+      // Activate this
+      btn.classList.add('active');
+      
+      state.settings.themeColor = color.hex;
+      saveToStorage();
+      applyThemeColor(color.hex);
+    });
+
+    container.appendChild(btn);
+  });
+}
+
+// ROUTING / NAVIGATION WITH HEADER ACTIONS DYNAMIC TOGGLE
 function navigateTo(targetId) {
   Object.keys(sections).forEach(key => {
     if (key === targetId) {
@@ -275,6 +402,19 @@ function navigateTo(targetId) {
 
   updateFilterDropdowns();
 
+  // Dynamic Header Action Button toggling based on tab view (User request: separate food registry from ledger)
+  if (targetId === 'dashboard' || targetId === 'fridge') {
+    btnQuickAddFridge.style.display = 'inline-flex';
+    btnQuickAddLedger.style.display = 'none';
+  } else if (targetId === 'ledger') {
+    btnQuickAddFridge.style.display = 'none';
+    btnQuickAddLedger.style.display = 'inline-flex';
+  } else {
+    // settings screen hide action button
+    btnQuickAddFridge.style.display = 'none';
+    btnQuickAddLedger.style.display = 'none';
+  }
+
   switch (targetId) {
     case 'dashboard':
       pageTitle.textContent = 'ダッシュボード';
@@ -293,8 +433,9 @@ function navigateTo(targetId) {
       break;
     case 'settings':
       pageTitle.textContent = '管理設定';
-      pageSubtitle.textContent = 'データのバックアップ、アプリの初期化を行います。';
+      pageSubtitle.textContent = 'テーマカラーの変更、データのバックアップ、アプリの初期化を行います。';
       renderSettings();
+      renderColorPalettePicker();
       break;
   }
 }
@@ -310,23 +451,13 @@ function initTheme() {
     body.classList.add('dark-theme');
   }
   ledgerCharts.setTheme(state.settings.theme);
+  applyThemeColor(state.settings.themeColor);
 }
 
 function toggleTheme() {
   state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
   saveToStorage();
   initTheme();
-}
-
-// DAYS DIFFERENCE
-function getDaysDifference(targetDateStr) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const targetDate = new Date(targetDateStr);
-  targetDate.setHours(0, 0, 0, 0);
-
-  const diffTime = targetDate.getTime() - today.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
 // 1. RENDER DASHBOARD
@@ -371,7 +502,7 @@ function renderDashboard() {
   } else if (percent >= 70) {
     fillBar.style.background = 'var(--warning)';
   } else {
-    fillBar.style.background = 'linear-gradient(to right, var(--primary), #ffa585)';
+    fillBar.style.background = 'var(--primary)';
   }
 
   const budgetStatusText = document.getElementById('dash-budget-status');
@@ -685,7 +816,6 @@ function renderLedger() {
       if (categoryTotals[cat] !== undefined) {
         categoryTotals[cat] += Number(item.price);
       } else {
-        // Dynamic custom category aggregation
         if (categoryTotals[cat] === undefined) {
           categoryTotals[cat] = 0;
         }
@@ -764,14 +894,11 @@ document.getElementById('btn-save-ledger-budget').addEventListener('click', () =
 // ADD/EDIT ITEM MODAL & ACTIONS
 const itemModal = document.getElementById('modal-item-form');
 const itemForm = document.getElementById('form-fridge-item');
-const syncLedgerCheck = document.getElementById('form-item-sync-ledger');
-const priceContainer = document.getElementById('form-item-price-container');
 
 const formItemCategorySelect = document.getElementById('form-item-category');
 const formItemCustomContainer = document.getElementById('form-item-custom-category-container');
 const formItemCustomInput = document.getElementById('form-item-custom-category');
 
-// Show/Hide custom input on selection change
 formItemCategorySelect.addEventListener('change', (e) => {
   if (e.target.value === 'custom') {
     formItemCustomContainer.style.display = 'block';
@@ -794,9 +921,6 @@ function openAddItemModal() {
   const d = new Date();
   d.setDate(d.getDate() + 5);
   document.getElementById('form-item-expiry').value = d.toISOString().split('T')[0];
-
-  syncLedgerCheck.checked = true;
-  priceContainer.style.display = 'flex';
   
   itemModal.classList.add('active');
 }
@@ -812,22 +936,17 @@ function openEditItemModal(id) {
   document.getElementById('form-item-quantity').value = item.quantity || '';
   document.getElementById('form-item-expiry').value = item.expiry;
 
-  // Set category dropdown value
   const standardKeys = ['meat_fish', 'vegetable', 'dairy', 'drink', 'seasoning', 'processed', 'other'];
   if (standardKeys.includes(item.category)) {
     formItemCategorySelect.value = item.category;
     formItemCustomContainer.style.display = 'none';
     formItemCustomInput.required = false;
   } else {
-    // Custom category
     formItemCategorySelect.value = 'custom';
     formItemCustomContainer.style.display = 'block';
     formItemCustomInput.value = item.category;
     formItemCustomInput.required = true;
   }
-
-  syncLedgerCheck.checked = false;
-  priceContainer.style.display = 'none';
 
   itemModal.classList.add('active');
 }
@@ -861,7 +980,7 @@ window.deleteLedgerItem = function(id) {
   }
 };
 
-// Form Item Save
+// Form Item Save (Decoupled completely from Ledger auto-registers)
 itemForm.addEventListener('submit', (e) => {
   e.preventDefault();
 
@@ -871,8 +990,6 @@ itemForm.addEventListener('submit', (e) => {
   let category = formItemCategorySelect.value;
   const quantity = document.getElementById('form-item-quantity').value.trim();
   const expiry = document.getElementById('form-item-expiry').value;
-  const syncLedger = syncLedgerCheck.checked;
-  const price = parseInt(document.getElementById('form-item-price').value) || 0;
 
   if (category === 'custom') {
     const customVal = formItemCustomInput.value.trim();
@@ -881,7 +998,6 @@ itemForm.addEventListener('submit', (e) => {
       return;
     }
     category = customVal;
-    // Register custom label dynamically
     FRIDGE_CATEGORIES[category] = category;
   }
 
@@ -912,21 +1028,6 @@ itemForm.addEventListener('submit', (e) => {
       expiry,
       dateAdded: todayStr
     });
-
-    if (syncLedger && price > 0) {
-      // Set food category or custom food category if custom was added
-      // If food added dynamically register ledger category map
-      const ledgerCat = (formItemCategorySelect.value === 'custom') ? category : 'food';
-      LEDGER_CATEGORIES[ledgerCat] = (formItemCategorySelect.value === 'custom') ? category : '食費 (冷蔵庫連携)';
-      
-      state.ledgerItems.push({
-        id: 'l_' + Date.now(),
-        date: todayStr,
-        name: name,
-        category: ledgerCat,
-        price: price
-      });
-    }
   }
 
   saveToStorage();
@@ -945,7 +1046,7 @@ itemForm.addEventListener('submit', (e) => {
   }
 });
 
-// MANUAL LEDGER REGISTER & TOGGLES
+// MANUAL LEDGER REGISTER
 const ledgerModal = document.getElementById('modal-ledger-manual');
 const ledgerForm = document.getElementById('form-ledger-manual');
 
@@ -1188,7 +1289,7 @@ document.getElementById('btn-import-data-file').addEventListener('change', (e) =
 // RESET APP
 document.getElementById('btn-reset-app').addEventListener('click', () => {
   if (confirm('警告: すべてのデータが完全に削除されますが、よろしいですか？')) {
-    localStorage.removeItem('smart_fridge_ledger_state_v2');
+    localStorage.removeItem('smart_fridge_ledger_state_v3');
     state = {
       fridgeItems: [],
       ledgerItems: [],
@@ -1205,7 +1306,8 @@ document.getElementById('btn-reset-app').addEventListener('click', () => {
           other: 5000
         },
         isPremium: false,
-        theme: 'light'
+        theme: 'light',
+        themeColor: '#ff7a59'
       }
     };
     saveToStorage();
@@ -1246,8 +1348,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('theme-toggle-desktop').addEventListener('click', toggleTheme);
-  document.getElementById('btn-quick-add').addEventListener('click', openAddItemModal);
-  document.getElementById('btn-ledger-add-manual').addEventListener('click', openLedgerModal);
+  
+  // Header Action Buttons Bindings
+  btnQuickAddFridge.addEventListener('click', openAddItemModal);
+  btnQuickAddLedger.addEventListener('click', openLedgerModal);
 
   document.getElementById('btn-close-item-modal').addEventListener('click', closeItemModal);
   document.getElementById('btn-cancel-item-modal').addEventListener('click', closeItemModal);
@@ -1266,10 +1370,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-dash-fridge-all').addEventListener('click', () => navigateTo('fridge'));
   document.getElementById('btn-dash-ledger-all').addEventListener('click', () => navigateTo('ledger'));
-
-  syncLedgerCheck.addEventListener('change', (e) => {
-    priceContainer.style.display = e.target.checked ? 'flex' : 'none';
-  });
 });
 
 function escapeHtml(string) {
