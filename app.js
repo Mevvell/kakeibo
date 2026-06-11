@@ -50,8 +50,8 @@ const LEDGER_CATEGORIES = {
 // 18 theme colors requested by user (excluding raw colors, including dark & pastel shades)
 // Replaced with colored-pencil style softer, warmer hues
 const AVAILABLE_THEME_COLORS = [
-  { name: '赤 (濃いめ)', hex: '#cc4e46' },
-  { name: '赤 (パステル)', hex: '#ffa1a1' },
+  { name: '赤', hex: '#c93b3b' },
+  { name: '朱色', hex: '#e85f3e' },
   { name: 'ピンク (濃いめ)', hex: '#d66b82' },
   { name: 'ピンク (パステル)', hex: '#ffd6e0' },
   { name: 'オレンジ (濃いめ)', hex: '#e08244' },
@@ -81,6 +81,15 @@ function saveToStorage() {
 }
 
 function loadFromStorage() {
+  // Force reset once to clear old developer test data (User Request)
+  const forceCleaned = localStorage.getItem('kakeibo_force_cleaned_v3');
+  if (forceCleaned !== 'true') {
+    localStorage.clear();
+    localStorage.setItem('kakeibo_force_cleaned_v3', 'true');
+    injectDemoData();
+    return;
+  }
+
   const data = localStorage.getItem('smart_fridge_ledger_state_v3');
   if (data) {
     try {
@@ -96,6 +105,7 @@ function loadFromStorage() {
       if (s.isPremium === undefined) s.isPremium = false;
       if (s.theme === undefined) s.theme = 'light';
       if (s.themeColor === undefined) s.themeColor = '#ff7a59';
+      if (s.isShared === undefined) s.isShared = false;
       
       if (!s.budgets) {
         s.budgets = {
@@ -139,49 +149,28 @@ function loadFromStorage() {
 
 // INJECT INITIAL SAMPLE DATA
 function injectDemoData() {
-  const today = new Date();
-  const formatDate = (daysOffset) => {
-    const d = new Date();
-    d.setDate(today.getDate() + daysOffset);
-    return d.toISOString().split('T')[0];
-  };
-
-  state.fridgeItems = [
-    { id: 'f1', name: '牛乳', category: 'dairy', location: 'fridge', quantity: '1本', expiry: formatDate(-1), dateAdded: formatDate(-3) },
-    { id: 'f2', name: '冷凍ギョーザ', category: 'processed', location: 'freezer', quantity: '1袋', expiry: formatDate(45), dateAdded: formatDate(-10) },
-    { id: 'f3', name: 'キャベツ', category: 'vegetable', location: 'vegetable', quantity: '半玉', expiry: formatDate(2), dateAdded: formatDate(-2) },
-    { id: 'f4', name: '豚バラ肉', category: 'meat_fish', location: 'fridge', quantity: '200g', expiry: formatDate(1), dateAdded: formatDate(-1) },
-    { id: 'f5', name: 'マヨネーズ', category: 'seasoning', location: 'fridge', quantity: '1本', expiry: formatDate(90), dateAdded: formatDate(-15) },
-    { id: 'f6', name: 'にんじん', category: 'vegetable', location: 'vegetable', quantity: '2本', expiry: formatDate(8), dateAdded: formatDate(-1) }
-  ];
-
-  state.ledgerItems = [
-    { id: 'l1', date: formatDate(-3), name: 'スーパー食費買い出し', category: 'food', price: 2450 },
-    { id: 'l2', date: formatDate(-1), name: 'お惣菜・コンビニ弁当', category: 'food', price: 980 },
-    { id: 'l3', date: formatDate(0), name: '同僚との飲み会', category: 'eat_out', price: 4500 },
-    { id: 'l4', date: formatDate(-5), name: '洗剤・ティッシュ', category: 'daily_necessities', price: 720 },
-    { id: 'l5', date: formatDate(-7), name: 'スマートフォン回線代', category: 'travel_telecom', price: 4200 },
-    { id: 'l6', date: formatDate(-2), name: '映画鑑賞チケット', category: 'entertainment', price: 1900 },
-    { id: 'l7', date: formatDate(-10), name: '水道料金', category: 'utilities', price: 3800 }
-  ];
+  state.fridgeItems = [];
+  state.ledgerItems = [];
 
   state.settings = {
-    startDay: 15,
-    carryOver: 3500,
+    startDay: 1,
+    carryOver: 0,
     budgets: {
-      food: 25000,
-      eat_out: 12000,
-      daily_necessities: 6000,
-      utilities: 10000,
-      entertainment: 8000,
-      travel_telecom: 7000,
+      food: 30000,
+      eat_out: 15000,
+      daily_necessities: 10000,
+      utilities: 15000,
+      entertainment: 10000,
+      travel_telecom: 10000,
       other: 5000
     },
     isPremium: false,
     theme: 'light',
-    themeColor: '#ff7a59'
+    themeColor: '#ff7a59',
+    isShared: false
   };
   saveToStorage();
+  localStorage.setItem('kakeibo_first_launch', 'true');
 }
 
 // ----------------------------------------------------
@@ -1309,25 +1298,27 @@ document.getElementById('btn-reset-app').addEventListener('click', () => {
         startDay: 1,
         carryOver: 0,
         budgets: {
-          food: 20000,
-          eat_out: 10000,
-          daily_necessities: 5000,
-          utilities: 10000,
-          entertainment: 5000,
-          travel_telecom: 5000,
+          food: 30000,
+          eat_out: 15000,
+          daily_necessities: 10000,
+          utilities: 15000,
+          entertainment: 10000,
+          travel_telecom: 10000,
           other: 5000
         },
         isPremium: false,
         theme: 'light',
-        themeColor: '#ff7a59'
+        themeColor: '#ff7a59',
+        isShared: false
       }
     };
     saveToStorage();
+    localStorage.setItem('kakeibo_first_launch', 'true');
     initTheme();
     populateLedgerBudgetForm();
     updateFilterDropdowns();
     navigateTo('dashboard');
-    alert('すべてのデータを削除しました。');
+    alert('すべてのデータを削除し、初期状態にリセットしました。');
   }
 });
 
@@ -1382,6 +1373,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-dash-fridge-all').addEventListener('click', () => navigateTo('fridge'));
   document.getElementById('btn-dash-ledger-all').addEventListener('click', () => navigateTo('ledger'));
+  initSharing();
 });
 
 function escapeHtml(string) {
@@ -1396,3 +1388,291 @@ function escapeHtml(string) {
     }[s];
   });
 }
+
+// SAFE UTF-8 BASE64 ENCODING/DECODING
+function safeBtoa(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+function safeAtob(str) {
+  return decodeURIComponent(escape(atob(str)));
+}
+
+// KVDB.IO BUCKET FOR 6-DIGIT SHARING
+const KVDB_BUCKET = 'kakeibo_share_v2_9a8c7b';
+
+// GENERATE 6-DIGIT RANDOM CODE
+function generate6DigitCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// UPLOAD SHARE DATA TO KVDB
+async function uploadShareData(code) {
+  const shareData = {
+    fridgeItems: state.fridgeItems,
+    ledgerItems: state.ledgerItems,
+    settings: state.settings
+  };
+  try {
+    const response = await fetch(`https://kvdb.io/${KVDB_BUCKET}/${code}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(shareData)
+    });
+    return response.ok;
+  } catch (e) {
+    console.error("Upload failed", e);
+    return false;
+  }
+}
+
+// DOWNLOAD AND APPLY SHARE DATA FROM KVDB
+async function downloadAndApplyShareData(code) {
+  try {
+    const response = await fetch(`https://kvdb.io/${KVDB_BUCKET}/${code}`);
+    if (response.ok) {
+      const parsed = await response.json();
+      if (parsed.fridgeItems && parsed.ledgerItems && parsed.settings) {
+        state.fridgeItems = parsed.fridgeItems;
+        state.ledgerItems = parsed.ledgerItems;
+        state.settings = parsed.settings;
+        state.settings.isShared = true;
+        saveToStorage();
+        
+        // テーマ反映
+        applyThemeColor(state.settings.themeColor);
+        initTheme();
+        
+        // ビューの更新
+        renderDashboard();
+        renderFridge();
+        renderLedger();
+        updateSharingUI();
+        return true;
+      }
+    }
+  } catch (e) {
+    console.error("Download failed", e);
+  }
+  return false;
+}
+
+// UPDATE SHARING BADGE AND UI STATUS
+function updateSharingUI() {
+  const isShared = state.settings.isShared || false;
+  const shareBadge = document.getElementById('share-badge');
+  const sharingStatusSettings = document.getElementById('sharing-status-settings');
+  
+  if (shareBadge) {
+    shareBadge.style.display = isShared ? 'inline-flex' : 'none';
+  }
+  
+  if (sharingStatusSettings) {
+    sharingStatusSettings.style.display = isShared ? 'flex' : 'none';
+  }
+}
+
+// PENDING INVITE TOKEN FOR MODAL
+let pendingInviteToken = null;
+
+// FAMILY SHARING INITIALIZATION
+function initSharing() {
+  updateSharingUI();
+  
+  // First Launch Help Guide Popup
+  if (localStorage.getItem('kakeibo_first_launch') === 'true') {
+    localStorage.removeItem('kakeibo_first_launch');
+    const helpModal = document.getElementById('modal-help-guide');
+    if (helpModal) {
+      helpModal.classList.add('active');
+    }
+  }
+  
+  // Help Guide Events
+  const btnOpenHelp = document.getElementById('btn-open-help');
+  const modalHelpGuide = document.getElementById('modal-help-guide');
+  const btnCloseHelpModal = document.getElementById('btn-close-help-modal');
+  const btnCloseHelpModalOk = document.getElementById('btn-close-help-modal-ok');
+  
+  const showHelp = () => {
+    if (modalHelpGuide) modalHelpGuide.classList.add('active');
+  };
+  const closeHelp = () => {
+    if (modalHelpGuide) modalHelpGuide.classList.remove('active');
+  };
+  
+  if (btnOpenHelp) btnOpenHelp.addEventListener('click', showHelp);
+  if (btnCloseHelpModal) btnCloseHelpModal.addEventListener('click', closeHelp);
+  if (btnCloseHelpModalOk) btnCloseHelpModalOk.addEventListener('click', closeHelp);
+
+  // Elements
+  const btnGenerateInvite = document.getElementById('btn-generate-invite');
+  const btnShowInviteCode = document.getElementById('btn-show-invite-code');
+  const inputInviteCode = document.getElementById('input-invite-code');
+  const btnApplyInviteCode = document.getElementById('btn-apply-invite-code');
+  const btnDisconnectShare = document.getElementById('btn-disconnect-share');
+  
+  // Modals
+  const modalShareConfirm = document.getElementById('modal-share-confirm');
+  const btnCloseShareModal = document.getElementById('btn-close-share-modal');
+  const btnCancelShareModal = document.getElementById('btn-cancel-share-modal');
+  const btnConfirmShareModal = document.getElementById('btn-confirm-share-modal');
+  
+  const modalShowInviteCode = document.getElementById('modal-show-invite-code-dialog');
+  const btnCloseCodeModal = document.getElementById('btn-close-code-modal');
+  const btnCopyCodeFromModal = document.getElementById('btn-copy-code-from-modal');
+  const textInviteCodeDisplay = document.getElementById('text-invite-code-display');
+
+  // URL Parameter check (?invite=TOKEN)
+  const urlParams = new URLSearchParams(window.location.search);
+  const inviteToken = urlParams.get('invite');
+  if (inviteToken) {
+    pendingInviteToken = inviteToken;
+    if (modalShareConfirm) {
+      modalShareConfirm.classList.add('active');
+    }
+  }
+
+  // Generate Invite Link & Copy
+  if (btnGenerateInvite) {
+    btnGenerateInvite.addEventListener('click', async () => {
+      const originalText = btnGenerateInvite.innerHTML;
+      btnGenerateInvite.innerHTML = '生成中...';
+      btnGenerateInvite.disabled = true;
+
+      const code = generate6DigitCode();
+      const success = await uploadShareData(code);
+
+      btnGenerateInvite.innerHTML = originalText;
+      btnGenerateInvite.disabled = false;
+
+      if (success) {
+        const inviteUrl = window.location.origin + window.location.pathname + '?invite=' + code;
+        navigator.clipboard.writeText(inviteUrl).then(() => {
+          alert(`招待リンクをコピーしました！\n招待コード: ${code}\n\nこのリンクを家族の端末で開くか、設定画面で6桁のコードを入力してください。`);
+        }).catch(err => {
+          alert(`招待コードが生成されました: ${code}\nリンクのコピーに失敗したため、このコードを直接伝えてください。`);
+        });
+      } else {
+        alert('共有リンクの作成に失敗しました。接続環境をご確認ください。');
+      }
+    });
+  }
+
+  // Show Invite Code
+  if (btnShowInviteCode && modalShowInviteCode && textInviteCodeDisplay) {
+    btnShowInviteCode.addEventListener('click', async () => {
+      const originalText = btnShowInviteCode.innerHTML;
+      btnShowInviteCode.innerHTML = 'コード作成中...';
+      btnShowInviteCode.disabled = true;
+
+      const code = generate6DigitCode();
+      const success = await uploadShareData(code);
+
+      btnShowInviteCode.innerHTML = originalText;
+      btnShowInviteCode.disabled = false;
+
+      if (success) {
+        textInviteCodeDisplay.textContent = code;
+        modalShowInviteCode.classList.add('active');
+      } else {
+        alert('招待コードの生成に失敗しました。');
+      }
+    });
+  }
+
+  // Copy Code From Modal
+  if (btnCopyCodeFromModal && textInviteCodeDisplay) {
+    btnCopyCodeFromModal.addEventListener('click', () => {
+      navigator.clipboard.writeText(textInviteCodeDisplay.textContent).then(() => {
+        alert('招待コードをコピーしました！');
+      }).catch(err => {
+        console.error('Could not copy invite code', err);
+      });
+    });
+  }
+
+  // Apply Invite Code
+  if (btnApplyInviteCode && inputInviteCode) {
+    btnApplyInviteCode.addEventListener('click', async () => {
+      const code = inputInviteCode.value.trim();
+      if (!code || code.length !== 6 || isNaN(code)) {
+        alert('正しい6桁の数字の招待コードを入力してください。');
+        return;
+      }
+      if (confirm('招待データを取り込みますか？\n取り込むと現在の冷蔵庫や家計簿のデータが上書きされます。')) {
+        const originalText = btnApplyInviteCode.textContent;
+        btnApplyInviteCode.textContent = '読込中...';
+        btnApplyInviteCode.disabled = true;
+
+        const success = await downloadAndApplyShareData(code);
+
+        btnApplyInviteCode.textContent = originalText;
+        btnApplyInviteCode.disabled = false;
+
+        if (success) {
+          alert('共有データを取り込みました！');
+          inputInviteCode.value = '';
+        } else {
+          alert('データの読み込みに失敗しました。コードが間違っているか、期限切れの可能性があります。');
+        }
+      }
+    });
+  }
+
+  // Disconnect Share
+  if (btnDisconnectShare) {
+    btnDisconnectShare.addEventListener('click', () => {
+      if (confirm('家族との共有設定を解除しますか？\n（データ自体は消去されませんが、共有中のバッジが表示されなくなります）')) {
+        state.settings.isShared = false;
+        saveToStorage();
+        updateSharingUI();
+        alert('共有を解除しました。');
+      }
+    });
+  }
+
+  // Modal Closures
+  const closeShareModal = () => {
+    if (modalShareConfirm) modalShareConfirm.classList.remove('active');
+    pendingInviteToken = null;
+    // URLのパラメータを除去
+    const url = new URL(window.location);
+    url.searchParams.delete('invite');
+    window.history.replaceState({}, document.title, url.pathname);
+  };
+
+  if (btnCloseShareModal) btnCloseShareModal.addEventListener('click', closeShareModal);
+  if (btnCancelShareModal) btnCancelShareModal.addEventListener('click', closeShareModal);
+
+  if (btnConfirmShareModal) {
+    btnConfirmShareModal.addEventListener('click', async () => {
+      if (pendingInviteToken) {
+        const originalText = btnConfirmShareModal.textContent;
+        btnConfirmShareModal.textContent = '読込中...';
+        btnConfirmShareModal.disabled = true;
+
+        const success = await downloadAndApplyShareData(pendingInviteToken);
+
+        btnConfirmShareModal.textContent = originalText;
+        btnConfirmShareModal.disabled = false;
+
+        if (success) {
+          alert('共有データを取り込みました！');
+        } else {
+          alert('データの取り込みに失敗しました。リンクが無効、または期限切れの可能性があります。');
+        }
+      }
+      closeShareModal();
+    });
+  }
+
+  const closeCodeModal = () => {
+    if (modalShowInviteCode) modalShowInviteCode.classList.remove('active');
+  };
+
+  if (btnCloseCodeModal) btnCloseCodeModal.addEventListener('click', closeCodeModal);
+}
+
