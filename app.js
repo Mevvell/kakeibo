@@ -230,6 +230,17 @@ function isDateInPeriod(dateStr, period) {
   return itemDate >= period.start && itemDate <= period.end;
 }
 
+// DAYS DIFFERENCE
+function getDaysDifference(targetDateStr) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const targetDate = new Date(targetDateStr);
+  targetDate.setHours(0, 0, 0, 0);
+
+  const diffTime = targetDate.getTime() - today.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
 // DOM ELEMENTS
 const sections = {
   dashboard: document.getElementById('section-dashboard'),
