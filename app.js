@@ -106,6 +106,16 @@ function loadFromStorage() {
       if (s.theme === undefined) s.theme = 'light';
       if (s.themeColor === undefined) s.themeColor = '#ff7a59';
       if (s.isShared === undefined) s.isShared = false;
+      if (!s.profile) {
+        s.profile = {
+          userId: 'usr_' + Math.random().toString(36).substring(2, 9),
+          name: 'ユーザー',
+          avatar: '👤'
+        };
+      }
+      if (!s.members) {
+        s.members = [s.profile];
+      }
       
       if (!s.budgets) {
         s.budgets = {
@@ -167,8 +177,15 @@ function injectDemoData() {
     isPremium: false,
     theme: 'light',
     themeColor: '#ff7a59',
-    isShared: false
+    isShared: false,
+    profile: {
+      userId: 'usr_' + Math.random().toString(36).substring(2, 9),
+      name: 'ユーザー',
+      avatar: '👤'
+    },
+    members: []
   };
+  state.settings.members = [state.settings.profile];
   saveToStorage();
   localStorage.setItem('kakeibo_first_launch', 'true');
 }
@@ -437,6 +454,7 @@ function navigateTo(targetId) {
       pageSubtitle.textContent = 'テーマカラーの変更、データのバックアップ、アプリの初期化を行います。';
       renderSettings();
       renderColorPalettePicker();
+      renderProfileSettings();
       break;
   }
 }
@@ -548,6 +566,9 @@ function renderDashboard() {
       const roomLabels = { fridge: '冷蔵', freezer: '冷凍', vegetable: '野菜' };
       const locationLabel = roomLabels[item.location] || '冷蔵';
 
+      const addedBy = item.addedBy || { name: state.settings.profile.name, avatar: state.settings.profile.avatar };
+      const avatarHtml = `<span class="user-avatar-badge" data-name="${escapeHtml(addedBy.name)}" style="margin-left: 0.35rem; flex-shrink: 0;">${addedBy.avatar}</span>`;
+
       return `
         <div class="compact-item">
           <div class="compact-item-info">
@@ -557,9 +578,12 @@ function renderDashboard() {
               <div class="text-sm text-secondary">${locationLabel}室 ・ ${FRIDGE_CATEGORIES[item.category] || item.category} ${item.quantity ? `・ ${escapeHtml(item.quantity)}` : ''}</div>
             </div>
           </div>
-          <div class="compact-item-meta">
-            <span class="text-sm font-semibold ${diff <= 3 ? 'text-danger' : 'text-secondary'}">${statusText}</span>
-            <div class="text-sm text-muted">${item.expiry}</div>
+          <div class="compact-item-meta" style="display: flex; align-items: center; gap: 0.5rem;">
+            <div style="text-align: right;">
+              <span class="text-sm font-semibold ${diff <= 3 ? 'text-danger' : 'text-secondary'}">${statusText}</span>
+              <div class="text-sm text-muted">${item.expiry}</div>
+            </div>
+            ${avatarHtml}
           </div>
         </div>
       `;
@@ -667,6 +691,9 @@ function renderFridge() {
       const isChecked = selectedIngredients.has(item.id) ? 'checked' : '';
       const isSelectedClass = selectedIngredients.has(item.id) ? 'selected' : '';
 
+      const addedBy = item.addedBy || { name: state.settings.profile.name, avatar: state.settings.profile.avatar };
+      const avatarHtml = `<span class="user-avatar-badge" data-name="${escapeHtml(addedBy.name)}" style="margin-right: 0.45rem; flex-shrink: 0; transform: scale(0.85); vertical-align: middle;">${addedBy.avatar}</span>`;
+
       return `
         <div class="glass-card fridge-card ${isSelectedClass}" id="fridge-card-${item.id}">
           <div class="fridge-card-indicator ${borderClass}"></div>
@@ -675,7 +702,8 @@ function renderFridge() {
 
           <div class="fridge-card-header">
             <span class="fridge-card-cat">${FRIDGE_CATEGORIES[item.category] || item.category}</span>
-            <div class="fridge-card-actions">
+            <div class="fridge-card-actions" style="display: flex; align-items: center;">
+              ${avatarHtml}
               <button class="btn-action edit" onclick="openEditItemModal('${item.id}')" title="編集"><i data-lucide="edit-2"></i></button>
               <button class="btn-action delete" onclick="deleteFridgeItem('${item.id}')" title="削除"><i data-lucide="trash-2"></i></button>
             </div>
@@ -784,10 +812,16 @@ function renderLedger() {
   } else {
     ledgerBody.innerHTML = filtered.map(item => {
       const catLabel = LEDGER_CATEGORIES[item.category] || item.category;
+      const addedBy = item.addedBy || { name: state.settings.profile.name, avatar: state.settings.profile.avatar };
+      const avatarHtml = `<span class="user-avatar-badge" data-name="${escapeHtml(addedBy.name)}" style="transform: scale(0.8); flex-shrink: 0; margin-right: 0.15rem;">${addedBy.avatar}</span>`;
+
       return `
         <tr id="ledger-row-${item.id}">
           <td class="font-semibold">${item.date}</td>
-          <td>${escapeHtml(item.name)}</td>
+          <td style="display: flex; align-items: center; gap: 0.35rem; border: none; height: 100%; min-height: 44px;">
+            ${avatarHtml}
+            <span>${escapeHtml(item.name)}</span>
+          </td>
           <td><span class="fridge-card-cat">${catLabel}</span></td>
           <td class="font-semibold text-primary">¥${Number(item.price).toLocaleString()}</td>
           <td>
@@ -915,6 +949,12 @@ function openAddItemModal() {
   document.getElementById('form-item-id').value = '';
   itemForm.reset();
   
+  populateUserDropdowns();
+  const userSelect = document.getElementById('form-item-user');
+  if (userSelect) {
+    userSelect.value = state.settings.profile.userId;
+  }
+
   document.getElementById('form-item-location').value = activeFridgeRoom;
   formItemCustomContainer.style.display = 'none';
   formItemCustomInput.required = false;
@@ -933,6 +973,13 @@ function openEditItemModal(id) {
   document.getElementById('item-modal-title').textContent = '食材の編集';
   document.getElementById('form-item-id').value = item.id;
   document.getElementById('form-item-name').value = item.name;
+  
+  populateUserDropdowns();
+  const userSelect = document.getElementById('form-item-user');
+  if (userSelect) {
+    userSelect.value = item.addedBy ? item.addedBy.userId : state.settings.profile.userId;
+  }
+
   document.getElementById('form-item-location').value = item.location || 'fridge';
   document.getElementById('form-item-quantity').value = item.quantity || '';
   document.getElementById('form-item-expiry').value = item.expiry;
@@ -1004,6 +1051,19 @@ itemForm.addEventListener('submit', (e) => {
 
   if (!name || !expiry) return;
 
+  const userSelect = document.getElementById('form-item-user');
+  let addedBy = {
+    userId: state.settings.profile.userId,
+    name: state.settings.profile.name,
+    avatar: state.settings.profile.avatar
+  };
+  if (userSelect && userSelect.value !== state.settings.profile.userId) {
+    const matched = state.settings.members.find(m => m.userId === userSelect.value);
+    if (matched) {
+      addedBy = { userId: matched.userId, name: matched.name, avatar: matched.avatar };
+    }
+  }
+
   const todayStr = new Date().toISOString().split('T')[0];
 
   if (id) {
@@ -1015,7 +1075,8 @@ itemForm.addEventListener('submit', (e) => {
         location,
         category,
         quantity,
-        expiry
+        expiry,
+        addedBy
       };
     }
   } else {
@@ -1027,7 +1088,8 @@ itemForm.addEventListener('submit', (e) => {
       category,
       quantity,
       expiry,
-      dateAdded: todayStr
+      dateAdded: todayStr,
+      addedBy
     });
   }
 
@@ -1067,6 +1129,13 @@ formLedgerCategorySelect.addEventListener('change', (e) => {
 
 function openLedgerModal() {
   ledgerForm.reset();
+  
+  populateUserDropdowns();
+  const userSelect = document.getElementById('form-ledger-user');
+  if (userSelect) {
+    userSelect.value = state.settings.profile.userId;
+  }
+
   document.getElementById('form-ledger-date').value = new Date().toISOString().split('T')[0];
   formLedgerCustomContainer.style.display = 'none';
   formLedgerCustomInput.required = false;
@@ -1096,12 +1165,26 @@ ledgerForm.addEventListener('submit', (e) => {
 
   if (!date || !name || price <= 0) return;
 
+  const userSelect = document.getElementById('form-ledger-user');
+  let addedBy = {
+    userId: state.settings.profile.userId,
+    name: state.settings.profile.name,
+    avatar: state.settings.profile.avatar
+  };
+  if (userSelect && userSelect.value !== state.settings.profile.userId) {
+    const matched = state.settings.members.find(m => m.userId === userSelect.value);
+    if (matched) {
+      addedBy = { userId: matched.userId, name: matched.name, avatar: matched.avatar };
+    }
+  }
+
   state.ledgerItems.push({
     id: 'l_' + Date.now(),
     date,
     name,
     category,
-    price
+    price,
+    addedBy
   });
 
   saveToStorage();
@@ -1309,9 +1392,16 @@ document.getElementById('btn-reset-app').addEventListener('click', () => {
         isPremium: false,
         theme: 'light',
         themeColor: '#ff7a59',
-        isShared: false
+        isShared: false,
+        profile: {
+          userId: 'usr_' + Math.random().toString(36).substring(2, 9),
+          name: 'ユーザー',
+          avatar: '👤'
+        },
+        members: []
       }
     };
+    state.settings.members = [state.settings.profile];
     saveToStorage();
     localStorage.setItem('kakeibo_first_launch', 'true');
     initTheme();
@@ -1435,10 +1525,50 @@ async function downloadAndApplyShareData(code) {
     if (response.ok) {
       const parsed = await response.json();
       if (parsed.fridgeItems && parsed.ledgerItems && parsed.settings) {
+        // 自分のプロフィールを退避
+        const myProfile = state.settings.profile;
+        const senderProfile = parsed.settings.profile;
+        const senderMembers = parsed.settings.members || [];
+
         state.fridgeItems = parsed.fridgeItems;
         state.ledgerItems = parsed.ledgerItems;
         state.settings = parsed.settings;
+        
+        // 自分のプロフィールを復元（上書き防止）
+        state.settings.profile = myProfile;
         state.settings.isShared = true;
+        
+        // メンバーリストのマージ
+        if (!state.settings.members) state.settings.members = [];
+        
+        // 1. 自分自身をマージ
+        const myIdx = state.settings.members.findIndex(m => m.userId === myProfile.userId);
+        if (myIdx >= 0) {
+          state.settings.members[myIdx] = myProfile;
+        } else {
+          state.settings.members.push(myProfile);
+        }
+
+        // 2. 送信者のプロフィールをマージ
+        if (senderProfile) {
+          const senderIdx = state.settings.members.findIndex(m => m.userId === senderProfile.userId);
+          if (senderIdx >= 0) {
+            state.settings.members[senderIdx] = senderProfile;
+          } else {
+            state.settings.members.push(senderProfile);
+          }
+        }
+
+        // 3. 送信者のメンバーリストをマージ
+        senderMembers.forEach(m => {
+          const idx = state.settings.members.findIndex(lm => lm.userId === m.userId);
+          if (idx >= 0) {
+            state.settings.members[idx] = m;
+          } else {
+            state.settings.members.push(m);
+          }
+        });
+
         saveToStorage();
         
         // テーマ反映
@@ -1674,5 +1804,154 @@ function initSharing() {
   };
 
   if (btnCloseCodeModal) btnCloseCodeModal.addEventListener('click', closeCodeModal);
+
+  // --- Profile Settings Events ---
+  const btnSaveProfile = document.getElementById('btn-save-profile');
+  const inputProfileName = document.getElementById('input-profile-name');
+  const inputProfileAvatar = document.getElementById('input-profile-avatar');
+  const avatarPresets = document.querySelectorAll('.avatar-preset-btn');
+
+  // Preset Avatar Clicks
+  avatarPresets.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      avatarPresets.forEach(b => b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      if (inputProfileAvatar) {
+        inputProfileAvatar.value = e.currentTarget.textContent;
+      }
+    });
+  });
+
+  // Save Profile
+  if (btnSaveProfile && inputProfileName && inputProfileAvatar) {
+    btnSaveProfile.addEventListener('click', () => {
+      const name = inputProfileName.value.trim();
+      const avatar = inputProfileAvatar.value.trim() || '👤';
+
+      if (!name) {
+        alert('名前を入力してください。');
+        return;
+      }
+
+      state.settings.profile.name = name;
+      state.settings.profile.avatar = avatar;
+
+      // メンバーリストの中の自分のプロフィールも更新
+      if (!state.settings.members) state.settings.members = [];
+      const myIdx = state.settings.members.findIndex(m => m.userId === state.settings.profile.userId);
+      if (myIdx >= 0) {
+        state.settings.members[myIdx] = state.settings.profile;
+      } else {
+        state.settings.members.push(state.settings.profile);
+      }
+
+      // 食材や家計簿に紐づく過去の addedBy 情報のうち、自分の情報も同期更新する
+      state.fridgeItems.forEach(item => {
+        if (item.addedBy && item.addedBy.userId === state.settings.profile.userId) {
+          item.addedBy.name = name;
+          item.addedBy.avatar = avatar;
+        }
+      });
+      state.ledgerItems.forEach(item => {
+        if (item.addedBy && item.addedBy.userId === state.settings.profile.userId) {
+          item.addedBy.name = name;
+          item.addedBy.avatar = avatar;
+        }
+      });
+
+      saveToStorage();
+      renderProfileSettings();
+      alert('プロフィールを保存しました！');
+
+      // 画面更新
+      renderDashboard();
+      renderFridge();
+      renderLedger();
+    });
+  }
 }
+
+// POPULATE REGISTRANT DROPDOWNS
+function populateUserDropdowns() {
+  const itemSelect = document.getElementById('form-item-user');
+  const ledgerSelect = document.getElementById('form-ledger-user');
+  if (!itemSelect || !ledgerSelect) return;
+
+  itemSelect.innerHTML = '';
+  ledgerSelect.innerHTML = '';
+
+  // 自分自身
+  const selfOpt1 = document.createElement('option');
+  selfOpt1.value = state.settings.profile.userId;
+  selfOpt1.textContent = `${state.settings.profile.avatar} ${state.settings.profile.name} (自分)`;
+  itemSelect.appendChild(selfOpt1);
+
+  const selfOpt2 = document.createElement('option');
+  selfOpt2.value = state.settings.profile.userId;
+  selfOpt2.textContent = `${state.settings.profile.avatar} ${state.settings.profile.name} (自分)`;
+  ledgerSelect.appendChild(selfOpt2);
+
+  // 他のメンバー
+  if (state.settings.members) {
+    state.settings.members.forEach(m => {
+      if (m.userId === state.settings.profile.userId) return;
+
+      const opt1 = document.createElement('option');
+      opt1.value = m.userId;
+      opt1.textContent = `${m.avatar} ${m.name}`;
+      itemSelect.appendChild(opt1);
+
+      const opt2 = document.createElement('option');
+      opt2.value = m.userId;
+      opt2.textContent = `${m.avatar} ${m.name}`;
+      ledgerSelect.appendChild(opt2);
+    });
+  }
+}
+
+// RENDER PROFILE SETTINGS & MEMBER BADGES
+function renderProfileSettings() {
+  const inputName = document.getElementById('input-profile-name');
+  const inputAvatar = document.getElementById('input-profile-avatar');
+  if (!inputName || !inputAvatar) return;
+
+  inputName.value = state.settings.profile.name || 'ユーザー';
+  inputAvatar.value = state.settings.profile.avatar || '👤';
+
+  // 同期アクティブ切り替え
+  const presetBtns = document.querySelectorAll('.avatar-preset-btn');
+  presetBtns.forEach(btn => {
+    if (btn.textContent === state.settings.profile.avatar) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  // ファミリーメンバーバッジ
+  const membersContainer = document.getElementById('family-members-badges');
+  if (membersContainer) {
+    membersContainer.innerHTML = '';
+    
+    // 自分自身
+    const selfBadge = document.createElement('div');
+    selfBadge.className = 'family-member-badge';
+    selfBadge.style.borderColor = 'var(--primary)';
+    selfBadge.style.backgroundColor = 'var(--primary-glow)';
+    selfBadge.innerHTML = `<span>${state.settings.profile.avatar}</span> <strong>${state.settings.profile.name} (自分)</strong>`;
+    membersContainer.appendChild(selfBadge);
+
+    // 他のメンバー
+    if (state.settings.members) {
+      state.settings.members.forEach(m => {
+        if (m.userId === state.settings.profile.userId) return;
+        const badge = document.createElement('div');
+        badge.className = 'family-member-badge';
+        badge.innerHTML = `<span>${m.avatar}</span> <strong>${m.name}</strong>`;
+        membersContainer.appendChild(badge);
+      });
+    }
+  }
+}
+
 

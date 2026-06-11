@@ -1463,4 +1463,88 @@ body.dark-theme .fridge-refrigerator-box {
   box-shadow: 0 2px 6px var(--primary-glow);
 }
 
+/* User Avatar & Profile Styles */
+.user-avatar-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background-color: var(--primary-glow);
+  border: 1px solid var(--primary);
+  border-radius: 50%;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: default;
+  position: relative;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  user-select: none;
+}
+
+.user-avatar-badge::after {
+  content: attr(data-name);
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  background-color: rgba(50, 50, 50, 0.9);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+  pointer-events: none;
+  z-index: 999;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.user-avatar-badge:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+.avatar-preset-btn {
+  transition: all 0.2s ease;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  cursor: pointer;
+}
+
+.avatar-preset-btn:hover {
+  transform: scale(1.08);
+}
+
+.avatar-preset-btn.active {
+  border-color: var(--primary) !important;
+  background: var(--primary-glow) !important;
+  transform: scale(1.12);
+  box-shadow: 0 4px 10px var(--primary-glow);
+}
+
+.family-member-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: var(--text-main);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  font-weight: 500;
+}
+
+.border-t {
+  border-top: 1px solid var(--border-color);
+}
+
+.pt-3 {
+  padding-top: 0.75rem;
+}
+
+
 
